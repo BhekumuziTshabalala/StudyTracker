@@ -1,0 +1,49 @@
+package com.iu.studytracker
+
+import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
+import com.iu.studytracker.data.database.StudyTrackerDatabase
+import com.iu.studytracker.data.repository.StudyRepository
+import com.iu.studytracker.worker.StudyReminderWorker
+
+class StudyTrackerApp : Application() {
+
+    // Lazy-init the database singleton
+    val database: StudyTrackerDatabase by lazy {
+        StudyTrackerDatabase.getInstance(this)
+    }
+
+    val repository: StudyRepository by lazy {
+        StudyRepository(
+            monthPlanDao = database.monthPlanDao(),
+            moduleDao = database.moduleDao(),
+            topicDao = database.topicDao(),
+            dailyTaskDao = database.dailyTaskDao()
+        )
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+        StudyReminderWorker.schedule(this)
+    }
+
+    private fun createNotificationChannel() {
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Study Reminders",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Daily study goal reminders"
+        }
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    companion object {
+        const val CHANNEL_ID = "study_reminder_channel"
+    }
+}

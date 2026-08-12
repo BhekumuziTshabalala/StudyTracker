@@ -1,0 +1,86 @@
+# Built application & build folders
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+build/
+**/build/
+bin/
+out/
+target/
+app/build/
+
+# Files for the ART/Dalvik VM
+*.class
+
+# Java / JVM heap dump
+*.hprof
+
+# Gradle files & caches
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# Local environment variables & configuration files
+.env
+.env.*
+*.env
+local.env
+local.properties
+*-local.properties
+signing.properties
+secrets.properties
+
+# Local SQLite databases & cache files
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+
+# Proguard / R8 output mappings
+proguard/
+**/proguard/
+
+# Android Studio & IntelliJ IDEA files
+*.iml
+.idea/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/caches/
+.idea/libraries/
+.idea/shelf/
+.idea/jarRepositories.xml
+
+# Android Profiler & Native build files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing keys & credentials
+*.jks
+*.keystore
+*.p12
+*.key
+
+# VS Code & editor configs
+.vscode/
+*.swp
+*~
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+ehthumbs_vista.db
+
+# Log files
+*.log
+
