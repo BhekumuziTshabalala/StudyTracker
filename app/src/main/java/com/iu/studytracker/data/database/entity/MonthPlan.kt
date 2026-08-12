@@ -30,5 +30,8 @@ data class MonthPlan(
     val isSetupComplete: Boolean = false,
 
     /** Epoch millis when this plan was first created */
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+
+    /** Optional reference to the macro-level degree plan */
+    val degreePlanId: Long? = null
 )

@@ -37,6 +37,8 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
+    private var tasksJob: kotlinx.coroutines.Job? = null
+
     init {
         loadCalendar()
     }
@@ -46,49 +48,52 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
             val now = LocalDate.now()
             val yearMonth = YearMonth.of(now.year, now.monthValue)
             val todayStr = now.format(dateFormatter)
-
-            val plan = repository.getOrCreateCurrentMonthPlan()
-
-            if (!plan.isSetupComplete) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        hasSetup = false,
-                        year = now.year,
-                        month = now.monthValue,
-                        monthName = now.month.name.lowercase().replaceFirstChar { c -> c.uppercase() },
-                        todayString = todayStr
-                    )
-                }
-                return@launch
-            }
-
             val firstDay = yearMonth.atDay(1)
-            // dayOfWeek: 1=Mon, 7=Sun. Convert to Sun=0 based for grid.
-            val firstDayOfWeek = firstDay.dayOfWeek.value % 7 // Sun=0, Mon=1, ..., Sat=6
+            val firstDayOfWeek = firstDay.dayOfWeek.value % 7
 
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    hasSetup = true,
-                    year = now.year,
-                    month = now.monthValue,
-                    monthName = now.month.name.lowercase().replaceFirstChar { c -> c.uppercase() },
-                    daysInMonth = yearMonth.lengthOfMonth(),
-                    firstDayOfWeek = firstDayOfWeek,
-                    todayString = todayStr
-                )
-            }
+            // Ensure plan exists first
+            val initialPlan = repository.getOrCreateCurrentMonthPlan()
 
-            // Observe all tasks for the month
-            repository.observeAllTasksWithDetailsForMonth(plan.id).collect { tasks ->
-                val grouped = tasks.groupBy { it.scheduledDate }
-                val selected = _uiState.value.selectedDate
-                _uiState.update {
-                    it.copy(
-                        tasksByDate = grouped,
-                        selectedDateTasks = if (selected != null) grouped[selected] ?: emptyList() else emptyList()
-                    )
+            repository.observeMonthPlan(now.year, now.monthValue).collect { plan ->
+                if (plan == null || !plan.isSetupComplete) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            hasSetup = false,
+                            year = now.year,
+                            month = now.monthValue,
+                            monthName = now.month.name.lowercase().replaceFirstChar { c -> c.uppercase() },
+                            todayString = todayStr
+                        )
+                    }
+                    tasksJob?.cancel()
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            hasSetup = true,
+                            year = now.year,
+                            month = now.monthValue,
+                            monthName = now.month.name.lowercase().replaceFirstChar { c -> c.uppercase() },
+                            daysInMonth = yearMonth.lengthOfMonth(),
+                            firstDayOfWeek = firstDayOfWeek,
+                            todayString = todayStr
+                        )
+                    }
+
+                    tasksJob?.cancel()
+                    tasksJob = launch {
+                        repository.observeAllTasksWithDetailsForMonth(plan.id).collect { tasks ->
+                            val grouped = tasks.groupBy { it.scheduledDate }
+                            val selected = _uiState.value.selectedDate
+                            _uiState.update {
+                                it.copy(
+                                    tasksByDate = grouped,
+                                    selectedDateTasks = if (selected != null) grouped[selected] ?: emptyList() else emptyList()
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -103,5 +108,10 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
                 selectedDateTasks = tasks
             )
         }
+    }
+
+    fun refresh() {
+        // Since we are observing, we don't need to manually reload, but we can trigger a re-fetch if needed.
+        // For now, it's a no-op as the flow handles updates.
     }
 }

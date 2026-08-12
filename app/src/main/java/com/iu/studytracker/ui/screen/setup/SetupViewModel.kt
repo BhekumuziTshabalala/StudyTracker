@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.iu.studytracker.StudyTrackerApp
+import com.iu.studytracker.data.database.entity.CurriculumModule
 import com.iu.studytracker.scheduler.TopicScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,12 +15,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 data class SetupUiState(
-    val module1Name: String = "",
-    val module2Name: String = "",
-    val module1Topics: List<String> = emptyList(),
-    val module2Topics: List<String> = emptyList(),
-    val module1NewTopic: String = "",
-    val module2NewTopic: String = "",
+    val curriculumModules: List<CurriculumModule> = emptyList(),
+    val selectedModuleIds: Set<Long> = emptySet(),
     val isGenerating: Boolean = false,
     val scheduleSummary: TopicScheduler.ScheduleSummary? = null,
     val isComplete: Boolean = false,
@@ -33,71 +30,34 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(SetupUiState())
     val uiState: StateFlow<SetupUiState> = _uiState.asStateFlow()
 
-    // ── Module 1 ────────────────────────────────────────────────
-
-    fun updateModule1Name(name: String) {
-        _uiState.update { it.copy(module1Name = name) }
-    }
-
-    fun updateModule1NewTopic(topic: String) {
-        _uiState.update { it.copy(module1NewTopic = topic) }
-    }
-
-    fun addModule1Topic() {
-        val topic = _uiState.value.module1NewTopic.trim()
-        if (topic.isNotEmpty()) {
-            _uiState.update {
-                it.copy(
-                    module1Topics = it.module1Topics + topic,
-                    module1NewTopic = ""
-                )
+    init {
+        viewModelScope.launch {
+            repository.observeAllCurriculumModules().collect { modules ->
+                val incompleteModules = modules.filter { !it.isCompleted }
+                _uiState.update { it.copy(curriculumModules = incompleteModules) }
             }
         }
     }
 
-    fun removeModule1Topic(index: Int) {
-        _uiState.update {
-            it.copy(module1Topics = it.module1Topics.toMutableList().apply { removeAt(index) })
-        }
-    }
-
-    // ── Module 2 ────────────────────────────────────────────────
-
-    fun updateModule2Name(name: String) {
-        _uiState.update { it.copy(module2Name = name) }
-    }
-
-    fun updateModule2NewTopic(topic: String) {
-        _uiState.update { it.copy(module2NewTopic = topic) }
-    }
-
-    fun addModule2Topic() {
-        val topic = _uiState.value.module2NewTopic.trim()
-        if (topic.isNotEmpty()) {
-            _uiState.update {
-                it.copy(
-                    module2Topics = it.module2Topics + topic,
-                    module2NewTopic = ""
-                )
+    fun toggleModuleSelection(moduleId: Long) {
+        _uiState.update { state ->
+            val selected = state.selectedModuleIds.toMutableSet()
+            if (selected.contains(moduleId)) {
+                selected.remove(moduleId)
+            } else {
+                if (selected.size < 3) {
+                    selected.add(moduleId)
+                } else {
+                    return@update state.copy(errorMessage = "You can select up to 3 modules maximum.")
+                }
             }
+            state.copy(selectedModuleIds = selected)
         }
     }
-
-    fun removeModule2Topic(index: Int) {
-        _uiState.update {
-            it.copy(module2Topics = it.module2Topics.toMutableList().apply { removeAt(index) })
-        }
-    }
-
-    // ── Generate Schedule ────────────────────────────────────────
 
     fun canGenerate(): Boolean {
         val state = _uiState.value
-        return state.module1Name.isNotBlank() &&
-                state.module2Name.isNotBlank() &&
-                state.module1Topics.isNotEmpty() &&
-                state.module2Topics.isNotEmpty() &&
-                !state.isGenerating
+        return state.selectedModuleIds.isNotEmpty() && !state.isGenerating
     }
 
     fun generateSchedule() {
@@ -109,22 +69,29 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val now = LocalDate.now()
-                val (_, result) = repository.setupMonthAndGenerateSchedule(
+                val selectedIds = state.selectedModuleIds.toList()
+                val (_, result) = repository.setupMonthWithCurriculumModules(
                     year = now.year,
                     month = now.monthValue,
-                    module1Name = state.module1Name.trim(),
-                    module1Topics = state.module1Topics,
-                    module2Name = state.module2Name.trim(),
-                    module2Topics = state.module2Topics,
+                    moduleIds = selectedIds,
                     startFrom = now
                 )
 
-                _uiState.update {
-                    it.copy(
-                        isGenerating = false,
-                        scheduleSummary = result?.summary(),
-                        isComplete = true
-                    )
+                if (result != null && result.tasks.isNotEmpty()) {
+                    _uiState.update {
+                        it.copy(
+                            isGenerating = false,
+                            scheduleSummary = result.summary(),
+                            isComplete = true
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isGenerating = false,
+                            errorMessage = "Failed to generate schedule (no topics found)"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update {

@@ -35,5 +35,11 @@ data class Topic(
     val title: String,
 
     /** Ordering within the module (0-based) */
-    val orderIndex: Int
+    val orderIndex: Int,
+
+    /** Optional URI to a local resource (PDF) or web URL */
+    val resourceUri: String? = null,
+
+    /** Specific pages or sections to cover (e.g. "Pages 20-45") */
+    val pageRange: String? = null
 )

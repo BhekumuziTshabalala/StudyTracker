@@ -61,6 +61,40 @@ object TopicScheduler {
         return ScheduleResult(tasks, availableDates)
     }
 
+    /**
+     * Re-distributes past, incomplete tasks across the remaining days of the month.
+     */
+    fun rebalanceSchedule(
+        incompleteTasks: List<DailyTask>,
+        year: Int,
+        month: Int,
+        today: LocalDate = LocalDate.now()
+    ): List<DailyTask> {
+        if (incompleteTasks.isEmpty()) return emptyList()
+
+        val availableDates = getAvailableDates(year, month, today)
+        if (availableDates.isEmpty()) return emptyList()
+
+        val updatedTasks = mutableListOf<DailyTask>()
+        val baseCount = incompleteTasks.size / availableDates.size
+        val extraDays = incompleteTasks.size % availableDates.size
+        var taskIndex = 0
+
+        for (dayIndex in availableDates.indices) {
+            val tasksToday = if (dayIndex < extraDays) baseCount + 1 else baseCount
+            repeat(tasksToday) {
+                if (taskIndex < incompleteTasks.size) {
+                    val oldTask = incompleteTasks[taskIndex]
+                    updatedTasks.add(
+                        oldTask.copy(scheduledDate = availableDates[dayIndex].format(dateFormatter))
+                    )
+                    taskIndex++
+                }
+            }
+        }
+        return updatedTasks
+    }
+
     // ── Stage 1: Interleave ─────────────────────────────────────
 
     /**

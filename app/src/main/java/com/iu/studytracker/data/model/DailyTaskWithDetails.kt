@@ -15,5 +15,8 @@ data class DailyTaskWithDetails(
     val completedAt: Long?,
     val topicTitle: String,
     val moduleName: String,
-    val moduleOrderIndex: Int
+    val moduleOrderIndex: Int,
+    val actualMinutesSpent: Int,
+    val resourceUri: String?,
+    val pageRange: String?
 )

@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -16,10 +18,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            StudyTrackerTheme {
+            val app = application as StudyTrackerApp
+            val themeMode by app.userPreferences.themeMode.collectAsState(initial = com.iu.studytracker.data.repository.ThemeMode.SYSTEM)
+            
+            val isDarkTheme = when (themeMode) {
+                com.iu.studytracker.data.repository.ThemeMode.LIGHT -> false
+                com.iu.studytracker.data.repository.ThemeMode.DARK -> true
+                com.iu.studytracker.data.repository.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+
+            StudyTrackerTheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = DarkBackground
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.background
                 ) {
                     StudyTrackerNavGraph()
                 }

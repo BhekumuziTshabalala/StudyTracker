@@ -23,6 +23,7 @@ val DarkBorder = Color(0xFF30363D)
 // ── Module identity colors ──────────────────────────────────
 val Module1Color = Color(0xFF8B5CF6)  // Purple
 val Module2Color = Color(0xFF06B6D4)  // Cyan
+val Module3Color = Color(0xFFF59E0B)  // Amber
 
 // ── Status colors ───────────────────────────────────────────
 val StatusGreen = Color(0xFF22C55E)

@@ -20,8 +20,14 @@ class StudyTrackerApp : Application() {
             monthPlanDao = database.monthPlanDao(),
             moduleDao = database.moduleDao(),
             topicDao = database.topicDao(),
-            dailyTaskDao = database.dailyTaskDao()
+            dailyTaskDao = database.dailyTaskDao(),
+            degreePlanDao = database.degreePlanDao(),
+            curriculumDao = database.curriculumDao()
         )
+    }
+
+    val userPreferences: com.iu.studytracker.data.repository.UserPreferencesRepository by lazy {
+        com.iu.studytracker.data.repository.UserPreferencesRepository(this)
     }
 
     override fun onCreate() {

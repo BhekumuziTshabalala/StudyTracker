@@ -25,6 +25,12 @@ Designed specifically for university students managing dual-module monthly curri
 ### 📈 Progress & Analytics
 - **Module-by-Module Breakdown**: High-resolution progress bars and completion percentages for each module.
 - **Overall Velocity**: Visual analytics showing total topics completed, remaining tasks, and projected completion dates.
+- **Curriculum Management**: Modules are automatically separated into Active (grouped by semester) and Completed sections for easier tracking.
+- **ECTS Credit Tracking**: Monitors degree progress against the 180 ECTS total (5 credits per completed module).
+
+### ⏳ Pomodoro Focus Timer
+- **Integrated Timer**: Start a 25-minute Pomodoro timer directly from your daily tasks.
+- **Time Tracking**: Automatically logs actual minutes spent studying per task to the database.
 
 ### ⏰ Automated Background Reminders
 - **WorkManager Integration**: Periodic background worker (`StudyReminderWorker`) that notifies students about pending daily study goals.
@@ -80,9 +86,12 @@ StudyTracker/
 │       │           ├── navigation/           # NavGraph and Screen definitions
 │       │           ├── screen/
 │       │           │   ├── setup/            # Initial monthly setup flow (Modules & Topics)
-│       │           │   ├── dashboard/        # Today's tasks, active streak, summary cards
+│       │           │   ├── dashboard/        # Today's tasks, active streak, summary cards, Focus Timer
 │       │           │   ├── calendar/         # Month calendar & day task inspector
-│       │           │   └── progress/         # Completion charts, module breakdown & velocity
+│       │           │   ├── progress/         # Completion charts, module breakdown & velocity
+│       │           │   ├── curriculum/       # Active/Completed module organization
+│       │           │   ├── roadmap/          # Macro-level ECTS progress & timeline
+│       │           │   └── settings/         # Global settings configuration
 │       │           └── theme/                # Material 3 colors, typography, shapes & theme
 │       └── test/java/com/iu/studytracker/
 │           └── scheduler/

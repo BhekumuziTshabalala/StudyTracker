@@ -20,12 +20,10 @@ import androidx.navigation.compose.rememberNavController
 import com.iu.studytracker.ui.screen.calendar.CalendarScreen
 import com.iu.studytracker.ui.screen.dashboard.DashboardScreen
 import com.iu.studytracker.ui.screen.progress.ProgressScreen
+import com.iu.studytracker.ui.screen.roadmap.RoadmapScreen
 import com.iu.studytracker.ui.screen.setup.SetupScreen
-import com.iu.studytracker.ui.theme.DarkBackground
-import com.iu.studytracker.ui.theme.DarkSurface
-import com.iu.studytracker.ui.theme.DarkSurfaceVariant
+import com.iu.studytracker.ui.screen.curriculum.CurriculumScreen
 import com.iu.studytracker.ui.theme.Purple60
-import com.iu.studytracker.ui.theme.TextSecondary
 
 @Composable
 fun StudyTrackerNavGraph() {
@@ -44,10 +42,10 @@ fun StudyTrackerNavGraph() {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(DarkBackground)
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 NavigationRail(
-                    containerColor = DarkSurface,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = Purple60,
                     modifier = Modifier.fillMaxHeight(),
                     header = {
@@ -87,9 +85,9 @@ fun StudyTrackerNavGraph() {
                             colors = NavigationRailItemDefaults.colors(
                                 selectedIconColor = Purple60,
                                 selectedTextColor = Purple60,
-                                unselectedIconColor = TextSecondary,
-                                unselectedTextColor = TextSecondary,
-                                indicatorColor = DarkSurfaceVariant
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                             ),
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
@@ -110,7 +108,7 @@ fun StudyTrackerNavGraph() {
                 bottomBar = {
                     if (showNav) {
                         NavigationBar(
-                            containerColor = DarkSurface,
+                            containerColor = MaterialTheme.colorScheme.surface,
                             tonalElevation = 0.dp
                         ) {
                             Screen.bottomNavItems.forEach { screen ->
@@ -146,9 +144,9 @@ fun StudyTrackerNavGraph() {
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = Purple60,
                                         selectedTextColor = Purple60,
-                                        unselectedIconColor = TextSecondary,
-                                        unselectedTextColor = TextSecondary,
-                                        indicatorColor = DarkSurfaceVariant
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                                     )
                                 )
                             }
@@ -188,6 +186,9 @@ private fun AppNavHost(
             DashboardScreen(
                 onNavigateToSetup = {
                     navController.navigate(Screen.Setup.route)
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
                 }
             )
         }
@@ -217,11 +218,34 @@ private fun AppNavHost(
         }
 
         composable(Screen.Calendar.route) {
-            CalendarScreen()
+            CalendarScreen(
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+            )
         }
 
         composable(Screen.Progress.route) {
-            ProgressScreen()
+            ProgressScreen(
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+            )
+        }
+
+        composable(Screen.Roadmap.route) {
+            RoadmapScreen(
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+            )
+        }
+
+        composable(Screen.Curriculum.route) {
+            CurriculumScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+            )
+        }
+
+        composable(Screen.Settings.route) {
+            com.iu.studytracker.ui.screen.settings.SettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

@@ -70,8 +70,8 @@ interface DailyTaskDao {
 
     /** Get tasks with topic and module details for a specific date (dashboard). */
     @Query("""
-        SELECT dt.id AS taskId, dt.scheduledDate, dt.isCompleted, dt.completedAt,
-               t.title AS topicTitle, m.name AS moduleName, m.orderIndex AS moduleOrderIndex
+        SELECT dt.id AS taskId, dt.scheduledDate, dt.isCompleted, dt.completedAt, dt.actualMinutesSpent,
+               t.title AS topicTitle, t.resourceUri, t.pageRange, m.name AS moduleName, m.orderIndex AS moduleOrderIndex
         FROM daily_tasks dt
         INNER JOIN topics t ON dt.topicId = t.id
         INNER JOIN modules m ON t.moduleId = m.id
@@ -82,8 +82,8 @@ interface DailyTaskDao {
 
     /** Get all tasks with details for a month plan (calendar & progress). */
     @Query("""
-        SELECT dt.id AS taskId, dt.scheduledDate, dt.isCompleted, dt.completedAt,
-               t.title AS topicTitle, m.name AS moduleName, m.orderIndex AS moduleOrderIndex
+        SELECT dt.id AS taskId, dt.scheduledDate, dt.isCompleted, dt.completedAt, dt.actualMinutesSpent,
+               t.title AS topicTitle, t.resourceUri, t.pageRange, m.name AS moduleName, m.orderIndex AS moduleOrderIndex
         FROM daily_tasks dt
         INNER JOIN topics t ON dt.topicId = t.id
         INNER JOIN modules m ON t.moduleId = m.id
@@ -91,4 +91,12 @@ interface DailyTaskDao {
         ORDER BY dt.scheduledDate ASC, m.orderIndex ASC, t.orderIndex ASC
     """)
     fun observeAllTasksWithDetailsForMonth(monthPlanId: Long): Flow<List<DailyTaskWithDetails>>
+
+    /** Add time to a task */
+    @Query("UPDATE daily_tasks SET actualMinutesSpent = actualMinutesSpent + :minutes WHERE id = :taskId")
+    suspend fun incrementTimeSpent(taskId: Long, minutes: Int)
+
+    /** Get incomplete tasks before a certain date for catch-up scheduling */
+    @Query("SELECT * FROM daily_tasks WHERE monthPlanId = :monthPlanId AND isCompleted = 0 AND scheduledDate < :today ORDER BY scheduledDate ASC")
+    suspend fun getIncompleteTasksBeforeDate(monthPlanId: Long, today: String): List<DailyTask>
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -26,11 +27,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.iu.studytracker.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
+    onNavigateToSettings: () -> Unit,
     viewModel: CalendarViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
 
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -41,179 +48,199 @@ fun CalendarScreen(
 
     if (!uiState.hasSetup) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Please complete the setup first.", color = TextPrimary)
+            Text("Please complete the setup first.", color = MaterialTheme.colorScheme.onBackground)
         }
         return
     }
 
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DarkBackground)
-    ) {
-        val isTablet = maxWidth >= 720.dp
-
-        if (isTablet) {
-            // ── Tablet Side-by-Side Layout ───────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // Left Pane: Calendar Grid (55% width)
-                Card(
-                    modifier = Modifier
-                        .weight(0.55f)
-                        .fillMaxHeight(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Text(
-                            text = "${uiState.monthName} ${uiState.year}",
-                            color = TextPrimary,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-
-                        // Day of week headers
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            val days = listOf("S", "M", "T", "W", "T", "F", "S")
-                            days.forEach { day ->
-                                Text(
-                                    text = day,
-                                    color = TextSecondary,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Calendar grid
-                        CalendarGridContent(
-                            uiState = uiState,
-                            onSelectDay = { day -> viewModel.selectDate(day) }
-                        )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Calendar") },
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            val isTablet = maxWidth >= 720.dp
 
-                // Right Pane: Tasks for Selected Date (45% width)
-                Card(
+            if (isTablet) {
+                // ── Tablet Side-by-Side Layout ───────────────────────────
+                Row(
                     modifier = Modifier
-                        .weight(0.45f)
-                        .fillMaxHeight(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    Column(
+                    // Left Pane: Calendar Grid (55% width)
+                    Card(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp)
+                            .weight(0.55f)
+                            .fillMaxHeight(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
-                        Text(
-                            text = if (uiState.selectedDate != null) "Tasks for ${uiState.selectedDate}" else "Select a Day",
-                            color = TextPrimary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(20.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            Text(
+                                text = "${uiState.monthName} ${uiState.year}",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
 
-                        if (uiState.selectedDateTasks.isEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = if (uiState.selectedDate != null) "No tasks scheduled for this day." else "Tap a date on the calendar to view tasks.",
-                                    color = TextSecondary,
-                                    fontSize = 15.sp,
-                                    textAlign = TextAlign.Center
-                                )
+                            // Day of week headers
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                val days = listOf("S", "M", "T", "W", "T", "F", "S")
+                                days.forEach { day ->
+                                    Text(
+                                        text = day,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
-                        } else {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                                    .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                uiState.selectedDateTasks.forEach { task ->
-                                    CalendarTaskItem(task = task)
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Calendar grid
+                            CalendarGridContent(
+                                uiState = uiState,
+                                onSelectDay = { day -> viewModel.selectDate(day) }
+                            )
+                        }
+                    }
+
+                    // Right Pane: Tasks for Selected Date (45% width)
+                    Card(
+                        modifier = Modifier
+                            .weight(0.45f)
+                            .fillMaxHeight(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp)
+                        ) {
+                            Text(
+                                text = if (uiState.selectedDate != null) "Tasks for ${uiState.selectedDate}" else "Select a Day",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+
+                            if (uiState.selectedDateTasks.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (uiState.selectedDate != null) "No tasks scheduled for this day." else "Tap a date on the calendar to view tasks.",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 15.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            } else {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    uiState.selectedDateTasks.forEach { task ->
+                                        CalendarTaskItem(task = task)
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        } else {
-            // ── Phone Single-Column Layout ───────────────────────────
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(DarkBackground)
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Text(
-                    text = "${uiState.monthName} ${uiState.year}",
-                    color = TextPrimary,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                // Day of week headers
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    val days = listOf("S", "M", "T", "W", "T", "F", "S")
-                    days.forEach { day ->
-                        Text(
-                            text = day,
-                            color = TextSecondary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Calendar grid
-                CalendarGridContent(
-                    uiState = uiState,
-                    onSelectDay = { day -> viewModel.selectDate(day) }
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Task Panel
-                if (uiState.selectedDate != null) {
+            } else {
+                // ── Phone Single-Column Layout ───────────────────────────
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
                     Text(
-                        text = "Tasks for ${uiState.selectedDate}",
-                        color = TextPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        text = "${uiState.monthName} ${uiState.year}",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
                     )
 
-                    if (uiState.selectedDateTasks.isEmpty()) {
-                        Text("No tasks scheduled for this day.", color = TextSecondary)
-                    } else {
-                        uiState.selectedDateTasks.forEach { task ->
-                            CalendarTaskItem(task = task)
+                    // Day of week headers
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        val days = listOf("S", "M", "T", "W", "T", "F", "S")
+                        days.forEach { day ->
+                            Text(
+                                text = day,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Calendar grid
+                    CalendarGridContent(
+                        uiState = uiState,
+                        onSelectDay = { day -> viewModel.selectDate(day) }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Task Panel
+                    if (uiState.selectedDate != null) {
+                        Text(
+                            text = "Tasks for ${uiState.selectedDate}",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        if (uiState.selectedDateTasks.isEmpty()) {
+                            Text("No tasks scheduled for this day.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            uiState.selectedDateTasks.forEach { task ->
+                                CalendarTaskItem(task = task)
+                            }
                         }
                     }
                 }
@@ -263,7 +290,7 @@ private fun CalendarGridContent(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = day.toString(),
-                                    color = if (isToday || isSelected) Purple80 else TextPrimary,
+                                    color = if (isToday || isSelected) Purple80 else MaterialTheme.colorScheme.onBackground,
                                     fontSize = 16.sp
                                 )
                                 if (tasks.isNotEmpty()) {
@@ -276,14 +303,17 @@ private fun CalendarGridContent(
                                         )
                                     } else {
                                         Row(horizontalArrangement = Arrangement.Center) {
-                                            if (tasks.any { it.moduleOrderIndex == 0 }) {
-                                                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Module1Color))
-                                            }
-                                            if (tasks.any { it.moduleOrderIndex == 0 && tasks.any { t -> t.moduleOrderIndex == 1 }}) {
-                                                Spacer(modifier = Modifier.width(2.dp))
-                                            }
-                                            if (tasks.any { it.moduleOrderIndex == 1 }) {
-                                                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Module2Color))
+                                            val moduleIndices = tasks.map { it.moduleOrderIndex }.distinct().sorted()
+                                            moduleIndices.forEachIndexed { idx, modIndex ->
+                                                val color = when (modIndex % 3) {
+                                                    0 -> Module1Color
+                                                    1 -> Module2Color
+                                                    else -> StatusOrange
+                                                }
+                                                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(color))
+                                                if (idx < moduleIndices.size - 1) {
+                                                    Spacer(modifier = Modifier.width(2.dp))
+                                                }
                                             }
                                         }
                                     }
@@ -302,7 +332,7 @@ private fun CalendarGridContent(
 @Composable
 private fun CalendarTaskItem(task: com.iu.studytracker.data.model.DailyTaskWithDetails) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
@@ -315,20 +345,24 @@ private fun CalendarTaskItem(task: com.iu.studytracker.data.model.DailyTaskWithD
             Icon(
                 imageVector = if (task.isCompleted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
                 contentDescription = null,
-                tint = if (task.isCompleted) StatusGreen else TextSecondary,
+                tint = if (task.isCompleted) StatusGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
                     text = task.topicTitle,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = task.moduleName,
-                    color = if (task.moduleOrderIndex == 0) Module1Color else Module2Color,
+                    color = when (task.moduleOrderIndex % 3) {
+                        0 -> Module1Color
+                        1 -> Module2Color
+                        else -> StatusOrange
+                    },
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )

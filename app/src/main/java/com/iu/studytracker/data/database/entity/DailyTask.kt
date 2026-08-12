@@ -54,5 +54,11 @@ data class DailyTask(
     val isCompleted: Boolean = false,
 
     /** Epoch millis when completed, null if not yet done */
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+
+    /** Expected time to complete in minutes (default 25 for one Pomodoro) */
+    val estimatedMinutes: Int = 25,
+
+    /** Actual time spent focusing on this task */
+    val actualMinutesSpent: Int = 0
 )

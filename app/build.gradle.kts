@@ -78,6 +78,12 @@ dependencies {
     // Core
     implementation("androidx.core:core-ktx:1.16.0")
 
+    // Gson
+    implementation("com.google.code.gson:gson:2.11.0")
+
+    // DataStore Preferences
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

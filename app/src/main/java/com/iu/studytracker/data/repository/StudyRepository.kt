@@ -4,11 +4,18 @@ import com.iu.studytracker.data.database.dao.DailyTaskDao
 import com.iu.studytracker.data.database.dao.ModuleDao
 import com.iu.studytracker.data.database.dao.MonthPlanDao
 import com.iu.studytracker.data.database.dao.TopicDao
+import com.iu.studytracker.data.database.dao.DegreePlanDao
+import com.iu.studytracker.data.database.dao.CurriculumDao
+import com.iu.studytracker.data.database.entity.CurriculumModule
+import com.iu.studytracker.data.database.entity.CurriculumTopic
 import com.iu.studytracker.data.database.entity.DailyTask
+import com.iu.studytracker.data.database.entity.DegreePlan
 import com.iu.studytracker.data.model.DailyTaskWithDetails
 import com.iu.studytracker.data.database.entity.Module
 import com.iu.studytracker.data.database.entity.MonthPlan
 import com.iu.studytracker.data.database.entity.Topic
+import com.iu.studytracker.data.model.CurriculumJson
+import com.google.gson.Gson
 import com.iu.studytracker.data.database.relation.ModuleWithTopics
 import com.iu.studytracker.data.database.relation.MonthPlanFull
 import com.iu.studytracker.data.database.relation.MonthPlanWithModules
@@ -28,8 +35,74 @@ class StudyRepository(
     private val monthPlanDao: MonthPlanDao,
     private val moduleDao: ModuleDao,
     private val topicDao: TopicDao,
-    private val dailyTaskDao: DailyTaskDao
+    private val dailyTaskDao: DailyTaskDao,
+    private val degreePlanDao: DegreePlanDao,
+    private val curriculumDao: CurriculumDao
 ) {
+
+    // ── Curriculum Management ───────────────────────────────────
+
+    suspend fun importCurriculumFromJson(jsonString: String): String? {
+        return try {
+            val gson = Gson()
+            val curriculumData = gson.fromJson(jsonString, CurriculumJson::class.java)
+
+            // Clear old curriculum
+            curriculumDao.clearCurriculum()
+
+            // Update Degree Plan
+            val currentPlan = degreePlanDao.getCurrentPlan()
+            // Extract only the first sequence of digits (e.g., "180" from "180 CP[cite: 1]")
+            val creditString = Regex("\\d+").find(curriculumData.totalCreditPoints)?.value
+            val credits = creditString?.toIntOrNull() ?: 180
+
+            if (currentPlan != null) {
+                degreePlanDao.insert(currentPlan.copy(totalCreditsRequired = credits))
+            } else {
+                degreePlanDao.insert(DegreePlan(totalCreditsRequired = credits))
+            }
+
+            // Insert new curriculum
+            curriculumData.curriculum.forEach { semesterJson ->
+                semesterJson.allModules.forEach { moduleJson ->
+                    val module = CurriculumModule(
+                        semester = semesterJson.effectiveSemester,
+                        code = moduleJson.code.replace("\\[cite:.*\\]".toRegex(), ""),
+                        name = moduleJson.name.replace("\\[cite:.*\\]".toRegex(), ""),
+                        assessment = moduleJson.assessment.replace("\\[cite:.*\\]".toRegex(), "")
+                    )
+                    val topics = moduleJson.coreTopics.map { topicString ->
+                        CurriculumTopic(title = topicString.replace("\\[cite:.*\\]".toRegex(), ""))
+                    }
+                    curriculumDao.insertModuleWithTopics(module, topics)
+                }
+            }
+            curriculumData.programme.replace("\\[cite:.*\\]".toRegex(), "")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun updateCurriculumModuleCompletion(moduleId: Long, isCompleted: Boolean) {
+        curriculumDao.updateModuleCompletion(moduleId, isCompleted)
+    }
+
+    suspend fun insertCurriculumModuleManually(module: CurriculumModule, topics: List<CurriculumTopic>) {
+        curriculumDao.insertModuleWithTopics(module, topics)
+    }
+
+    fun observeAllCurriculumModules(): Flow<List<CurriculumModule>> {
+        return curriculumDao.getAllCurriculumModules()
+    }
+
+    suspend fun getAllCurriculumModulesSync(): List<CurriculumModule> {
+        return curriculumDao.getAllCurriculumModulesSync()
+    }
+
+    suspend fun deleteCurriculumModule(moduleId: Long) {
+        curriculumDao.deleteCurriculumModule(moduleId)
+    }
 
     // ── Date formatting ─────────────────────────────────────────
 
@@ -157,6 +230,42 @@ class StudyRepository(
 
     suspend fun deleteTasksForMonth(monthPlanId: Long) {
         dailyTaskDao.deleteTasksForMonth(monthPlanId)
+    }
+
+    suspend fun incrementTimeSpent(taskId: Long, minutes: Int) {
+        dailyTaskDao.incrementTimeSpent(taskId, minutes)
+    }
+
+    suspend fun rebalanceSchedule(monthPlanId: Long): Boolean {
+        val plan = getMonthPlanById(monthPlanId) ?: return false
+        val today = todayString()
+        val incomplete = dailyTaskDao.getIncompleteTasksBeforeDate(monthPlanId, today)
+        if (incomplete.isEmpty()) return false
+
+        val updated = TopicScheduler.rebalanceSchedule(
+            incompleteTasks = incomplete,
+            year = plan.year,
+            month = plan.month,
+            today = LocalDate.now()
+        )
+        if (updated.isNotEmpty()) {
+            dailyTaskDao.insertAll(updated)
+        }
+        return true
+    }
+
+    // ── Degree Plan ──────────────────────────────────────────────
+
+    suspend fun insertDegreePlan(plan: DegreePlan): Long {
+        return degreePlanDao.insert(plan)
+    }
+
+    fun observeCurrentDegreePlan(): Flow<DegreePlan?> {
+        return degreePlanDao.observeCurrentPlan()
+    }
+
+    suspend fun getCurrentDegreePlan(): DegreePlan? {
+        return degreePlanDao.getCurrentPlan()
     }
 
     // ── Stats ────────────────────────────────────────────────────
@@ -317,6 +426,46 @@ class StudyRepository(
             module2Name = module2Name,
             module2Topics = module2Topics
         )
+
+        val result = generateAndSaveSchedule(monthPlanId, startFrom)
+        return Pair(monthPlanId, result)
+    }
+
+    suspend fun setupMonthWithCurriculumModules(
+        year: Int,
+        month: Int,
+        moduleIds: List<Long>,
+        startFrom: LocalDate = LocalDate.now()
+    ): Pair<Long, TopicScheduler.ScheduleResult?> {
+        // 1. Create or get the month plan
+        val existingPlan = monthPlanDao.getByYearAndMonth(year, month)
+        val monthPlanId = if (existingPlan != null) {
+            // Clear old data for re-setup
+            dailyTaskDao.deleteTasksForMonth(existingPlan.id)
+            monthPlanDao.deleteById(existingPlan.id)
+            val newPlan = MonthPlan(year = year, month = month)
+            monthPlanDao.insert(newPlan)
+        } else {
+            val newPlan = MonthPlan(year = year, month = month)
+            monthPlanDao.insert(newPlan)
+        }
+
+        // 2. Fetch the selected curriculum modules and topics
+        val curriculumModules = curriculumDao.getAllCurriculumModulesSync().filter { moduleIds.contains(it.id) }
+        
+        // 3. Insert as Active Modules
+        curriculumModules.forEachIndexed { index, currModule ->
+            val modId = moduleDao.insert(
+                Module(monthPlanId = monthPlanId, name = currModule.name, orderIndex = index)
+            )
+            
+            // Fetch topics for this curriculum module
+            val currTopics = curriculumDao.getTopicsForModule(currModule.id)
+            val topics = currTopics.mapIndexed { tIndex, currTopic ->
+                Topic(moduleId = modId, title = currTopic.title, orderIndex = tIndex)
+            }
+            topicDao.insertAll(topics)
+        }
 
         val result = generateAndSaveSchedule(monthPlanId, startFrom)
         return Pair(monthPlanId, result)

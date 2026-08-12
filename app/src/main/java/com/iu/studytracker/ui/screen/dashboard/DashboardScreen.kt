@@ -24,17 +24,52 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
 import com.iu.studytracker.data.model.DailyTaskWithDetails
 import com.iu.studytracker.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onNavigateToSetup: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     viewModel: DashboardViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var activeTimerTask by remember { mutableStateOf<DailyTaskWithDetails?>(null) }
+
+    if (activeTimerTask != null) {
+        FocusTimerDialog(
+            taskId = activeTimerTask!!.taskId,
+            taskTitle = activeTimerTask!!.topicTitle,
+            onDismiss = { activeTimerTask = null }
+        )
+    }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(
+                        text = if (uiState.programmeName.isNotBlank()) uiState.programmeName else "Study Tracker",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    ) 
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        },
         floatingActionButton = {
             if (uiState.isSetupComplete) {
                 SmallFloatingActionButton(
@@ -47,7 +82,7 @@ fun DashboardScreen(
                 }
             }
         },
-        containerColor = DarkBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -64,7 +99,9 @@ fun DashboardScreen(
             } else {
                 ActiveDashboardState(
                     uiState = uiState,
-                    onToggleTask = viewModel::toggleTask
+                    onToggleTask = viewModel::toggleTask,
+                    onStartFocus = { task -> activeTimerTask = task },
+                    onRebalance = viewModel::rebalanceSchedule
                 )
             }
         }
@@ -107,14 +144,14 @@ fun NoSetupState(onNavigateToSetup: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Set up your month",
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Choose your two modules and topics",
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
                 )
                 Spacer(modifier = Modifier.height(32.dp))
@@ -136,12 +173,14 @@ fun NoSetupState(onNavigateToSetup: () -> Unit) {
 @Composable
 fun ActiveDashboardState(
     uiState: DashboardUiState,
-    onToggleTask: (Long, Boolean) -> Unit
+    onToggleTask: (Long, Boolean) -> Unit,
+    onStartFocus: (DailyTaskWithDetails) -> Unit,
+    onRebalance: () -> Unit
 ) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         val isTablet = maxWidth >= 720.dp
 
@@ -159,7 +198,7 @@ fun ActiveDashboardState(
                         .weight(0.42f)
                         .fillMaxHeight(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier
@@ -168,26 +207,53 @@ fun ActiveDashboardState(
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text(
-                                text = uiState.dayOfWeek.uppercase(),
-                                color = Module2Color,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.5.sp
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = uiState.dayOfWeek.uppercase(),
+                                    color = Module2Color,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.5.sp
+                                )
+                                IconButton(onClick = onRebalance) {
+                                    Icon(Icons.Default.AutoFixHigh, contentDescription = "Rebalance Schedule", tint = Module1Color)
+                                }
+                            }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = uiState.todayFormatted,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 34.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
                             Text(
                                 text = uiState.monthName,
-                                color = TextSecondary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Medium
                             )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            // Rank Badge
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Module1Color.copy(alpha = 0.2f))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Star, contentDescription = "Rank", tint = Module1Color, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "${uiState.rankTitle} (${uiState.xp} XP)",
+                                    color = Module1Color,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(32.dp))
 
@@ -195,14 +261,14 @@ fun ActiveDashboardState(
                             if (uiState.totalCount > 0) {
                                 Text(
                                     text = "Daily Progress",
-                                    color = TextPrimary,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "${uiState.completedCount} of ${uiState.totalCount} completed",
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 14.sp
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -221,8 +287,44 @@ fun ActiveDashboardState(
                                         .height(10.dp)
                                         .clip(RoundedCornerShape(5.dp)),
                                     color = Module1Color,
-                                    trackColor = DarkSurfaceVariant
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
+                                
+                                Spacer(modifier = Modifier.height(24.dp))
+                                
+                                // Curriculum Progress
+                                if (uiState.totalEcts > 0) {
+                                    Text(
+                                        text = "Credit Progress",
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "${uiState.completedEcts} of ${uiState.totalEcts} ECTS completed",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 14.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    val currProgressPercentage = uiState.completedEcts.toFloat() / uiState.totalEcts.toFloat()
+                                    val animatedCurrProgress by animateFloatAsState(
+                                        targetValue = currProgressPercentage,
+                                        animationSpec = tween(1000),
+                                        label = "curr_progress_animation"
+                                    )
+
+                                    LinearProgressIndicator(
+                                        progress = { animatedCurrProgress },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(10.dp)
+                                            .clip(RoundedCornerShape(5.dp)),
+                                        color = Purple80,
+                                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                }
                             } else if (uiState.isSetupComplete) {
                                 Column(
                                     modifier = Modifier
@@ -239,13 +341,13 @@ fun ActiveDashboardState(
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
                                         text = "Rest Day! 🎉",
-                                        color = TextPrimary,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         fontSize = 22.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         text = "No tasks scheduled for today.",
-                                        color = TextTertiary,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                         fontSize = 14.sp
                                     )
                                 }
@@ -257,7 +359,7 @@ fun ActiveDashboardState(
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     text = "Active Modules",
-                                    color = TextTertiary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -273,7 +375,7 @@ fun ActiveDashboardState(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = module.name,
-                                            color = TextSecondary,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Medium
                                         )
@@ -292,7 +394,7 @@ fun ActiveDashboardState(
                 ) {
                     Text(
                         text = "Today's Study Schedule",
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -302,7 +404,7 @@ fun ActiveDashboardState(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
                             Box(
                                 modifier = Modifier
@@ -312,7 +414,7 @@ fun ActiveDashboardState(
                             ) {
                                 Text(
                                     text = "All caught up! No tasks for today.",
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 16.sp
                                 )
                             }
@@ -326,7 +428,8 @@ fun ActiveDashboardState(
                             itemsIndexed(uiState.tasks, key = { _, task -> task.taskId }) { _, task ->
                                 TaskCard(
                                     task = task,
-                                    onToggle = { onToggleTask(task.taskId, task.isCompleted) }
+                                    onToggle = { onToggleTask(task.taskId, task.isCompleted) },
+                                    onStartFocus = { onStartFocus(task) }
                                 )
                             }
                         }
@@ -338,7 +441,7 @@ fun ActiveDashboardState(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(DarkBackground)
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 // Header Section
                 Box(
@@ -348,7 +451,7 @@ fun ActiveDashboardState(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
                                     Module1Color.copy(alpha = 0.15f),
-                                    DarkBackground
+                                    MaterialTheme.colorScheme.background
                                 )
                             )
                         )
@@ -363,18 +466,47 @@ fun ActiveDashboardState(
                             letterSpacing = 1.5.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = uiState.todayFormatted,
-                            color = TextPrimary,
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                        Text(
-                            text = uiState.monthName,
-                            color = TextSecondary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = uiState.todayFormatted,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                                Text(
+                                    text = uiState.monthName,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            IconButton(onClick = onRebalance) {
+                                Icon(Icons.Default.AutoFixHigh, contentDescription = "Rebalance Schedule", tint = Module1Color)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // Rank Badge
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Module1Color.copy(alpha = 0.2f))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Star, contentDescription = "Rank", tint = Module1Color, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${uiState.rankTitle} (${uiState.xp} XP)",
+                                color = Module1Color,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
 
@@ -388,13 +520,13 @@ fun ActiveDashboardState(
                         ) {
                             Text(
                                 text = "Daily Progress",
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "${uiState.completedCount} of ${uiState.totalCount} completed",
-                                color = TextSecondary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp
                             )
                         }
@@ -414,7 +546,48 @@ fun ActiveDashboardState(
                                 .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
                             color = Module1Color,
-                            trackColor = DarkSurfaceVariant
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    }
+                }
+                
+                if (uiState.totalEcts > 0) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Text(
+                                text = "Credit Progress",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${uiState.completedEcts} of ${uiState.totalEcts} ECTS",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 14.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val currProgressPercentage = uiState.completedEcts.toFloat() / uiState.totalEcts.toFloat()
+                        val animatedCurrProgress by animateFloatAsState(
+                            targetValue = currProgressPercentage,
+                            animationSpec = tween(1000),
+                            label = "curr_progress_animation"
+                        )
+
+                        LinearProgressIndicator(
+                            progress = { animatedCurrProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = Purple80,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     }
                 }
@@ -441,7 +614,7 @@ fun ActiveDashboardState(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = module.name,
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -470,13 +643,13 @@ fun ActiveDashboardState(
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "Rest Day! 🎉",
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "Take a break, you've earned it.",
-                                color = TextTertiary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                 fontSize = 14.sp
                             )
                         }
@@ -492,7 +665,8 @@ fun ActiveDashboardState(
                         itemsIndexed(uiState.tasks, key = { _, task -> task.taskId }) { _, task ->
                             TaskCard(
                                 task = task,
-                                onToggle = { onToggleTask(task.taskId, task.isCompleted) }
+                                onToggle = { onToggleTask(task.taskId, task.isCompleted) },
+                                onStartFocus = { onStartFocus(task) }
                             )
                         }
                     }
@@ -505,16 +679,18 @@ fun ActiveDashboardState(
 @Composable
 fun TaskCard(
     task: DailyTaskWithDetails,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    onStartFocus: () -> Unit
 ) {
     val moduleColor = if (task.moduleOrderIndex == 0) Module1Color else Module2Color
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onToggle() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -528,7 +704,7 @@ fun TaskCard(
                 onCheckedChange = { onToggle() },
                 colors = CheckboxDefaults.colors(
                     checkedColor = moduleColor,
-                    uncheckedColor = TextTertiary,
+                    uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     checkmarkColor = Color.White
                 )
             )
@@ -540,7 +716,7 @@ fun TaskCard(
                 ) { isCompleted ->
                     Text(
                         text = task.topicTitle,
-                        color = if (isCompleted) TextTertiary else TextPrimary,
+                        color = if (isCompleted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onBackground,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
                         textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None
@@ -560,6 +736,34 @@ fun TaskCard(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+                    if (task.actualMinutesSpent > 0) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${task.actualMinutesSpent}m spent",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+            }
+            // Action Buttons
+            if (!task.isCompleted) {
+                Row {
+                    if (!task.resourceUri.isNullOrEmpty()) {
+                        IconButton(onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(task.resourceUri))
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }) {
+                            Icon(Icons.Default.Link, contentDescription = "Resource Link", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    IconButton(onClick = onStartFocus) {
+                        Icon(Icons.Default.Timer, contentDescription = "Focus Timer", tint = moduleColor)
                     }
                 }
             }

@@ -28,7 +28,14 @@ data class DashboardUiState(
     val tasks: List<DailyTaskWithDetails> = emptyList(),
     val completedCount: Int = 0,
     val totalCount: Int = 0,
-    val modules: List<Module> = emptyList()
+    val modules: List<Module> = emptyList(),
+    val rankTitle: String = "Bronze",
+    val xp: Int = 0,
+    val programmeName: String = "",
+    val curriculumModulesCompleted: Int = 0,
+    val curriculumModulesTotal: Int = 0,
+    val completedEcts: Int = 0,
+    val totalEcts: Int = 180
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
@@ -82,6 +89,37 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             }
 
+            updateRankStats(plan.id)
+
+            val userPrefs = (getApplication<Application>() as StudyTrackerApp).userPreferences
+            
+            launch {
+                userPrefs.programmeName.collect { name ->
+                    _uiState.update { it.copy(programmeName = name ?: "") }
+                }
+            }
+
+            launch {
+                repository.observeCurrentDegreePlan().collect { plan ->
+                    if (plan != null) {
+                        _uiState.update { it.copy(totalEcts = plan.totalCreditsRequired) }
+                    }
+                }
+            }
+
+            launch {
+                repository.observeAllCurriculumModules().collect { currModules ->
+                    val completed = currModules.count { m -> m.isCompleted }
+                    _uiState.update {
+                        it.copy(
+                            curriculumModulesTotal = currModules.size,
+                            curriculumModulesCompleted = completed,
+                            completedEcts = completed * 5
+                        )
+                    }
+                }
+            }
+
             // Observe today's tasks reactively
             repository.observeTodaysTasksWithDetails().collect { tasks ->
                 _uiState.update {
@@ -98,6 +136,32 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     fun toggleTask(taskId: Long, isCurrentlyCompleted: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.toggleTaskCompletion(taskId, isCurrentlyCompleted)
+            updateRankStats(_uiState.value.monthPlanId)
+        }
+    }
+
+    private fun updateRankStats(monthPlanId: Long) {
+        if (monthPlanId == 0L) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val (completed, _) = repository.getCompletionStats(monthPlanId)
+            val xp = completed * 10
+            val rankTitle = when {
+                xp >= 200 -> "Gold"
+                xp >= 100 -> "Silver"
+                else -> "Bronze"
+            }
+            _uiState.update { it.copy(xp = xp, rankTitle = rankTitle) }
+        }
+    }
+
+    fun rebalanceSchedule() {
+        val planId = _uiState.value.monthPlanId
+        if (planId == 0L) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val wasRebalanced = repository.rebalanceSchedule(planId)
+            if (wasRebalanced) {
+                // If it was rebalanced, we just need to ensure the observers refresh, which they do automatically.
+            }
         }
     }
 

@@ -14,18 +14,20 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
+data class ModuleProgress(
+    val name: String,
+    val completed: Int,
+    val total: Int,
+    val orderIndex: Int
+)
+
 data class ProgressUiState(
     val isLoading: Boolean = true,
     val hasSetup: Boolean = false,
     val overallCompleted: Int = 0,
     val overallTotal: Int = 0,
     val overallPercentage: Float = 0f,
-    val module1Name: String = "",
-    val module1Completed: Int = 0,
-    val module1Total: Int = 0,
-    val module2Name: String = "",
-    val module2Completed: Int = 0,
-    val module2Total: Int = 0,
+    val modulesProgress: List<ModuleProgress> = emptyList(),
     val daysRemaining: Int = 0,
     val studyStreak: Int = 0,
     val monthName: String = ""
@@ -56,41 +58,43 @@ class ProgressViewModel(application: Application) : AndroidViewModel(application
             val modules = repository.getModulesForMonth(plan.id)
             val daysRemaining = YearMonth.of(now.year, now.monthValue).lengthOfMonth() - now.dayOfMonth
 
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    hasSetup = true,
-                    module1Name = modules.getOrNull(0)?.name ?: "Module 1",
-                    module2Name = modules.getOrNull(1)?.name ?: "Module 2",
-                    daysRemaining = daysRemaining,
-                    monthName = monthName
-                )
-            }
-
             // Observe all tasks for progress calculation
             repository.observeAllTasksWithDetailsForMonth(plan.id).collect { tasks ->
-                val mod1Tasks = tasks.filter { it.moduleOrderIndex == 0 }
-                val mod2Tasks = tasks.filter { it.moduleOrderIndex == 1 }
                 val totalCompleted = tasks.count { it.isCompleted }
                 val total = tasks.size
+                
+                val modulesProgress = modules.map { mod ->
+                    val modTasks = tasks.filter { it.moduleOrderIndex == mod.orderIndex }
+                    ModuleProgress(
+                        name = mod.name,
+                        completed = modTasks.count { it.isCompleted },
+                        total = modTasks.size,
+                        orderIndex = mod.orderIndex
+                    )
+                }
 
                 // Calculate streak: consecutive days with all tasks completed (backwards from yesterday)
                 val streak = calculateStreak(tasks, now)
 
                 _uiState.update {
                     it.copy(
+                        isLoading = false,
+                        hasSetup = true,
                         overallCompleted = totalCompleted,
                         overallTotal = total,
                         overallPercentage = if (total > 0) totalCompleted.toFloat() / total else 0f,
-                        module1Completed = mod1Tasks.count { t -> t.isCompleted },
-                        module1Total = mod1Tasks.size,
-                        module2Completed = mod2Tasks.count { t -> t.isCompleted },
-                        module2Total = mod2Tasks.size,
+                        modulesProgress = modulesProgress,
+                        daysRemaining = daysRemaining,
+                        monthName = monthName,
                         studyStreak = streak
                     )
                 }
             }
         }
+    }
+
+    fun refresh() {
+        loadProgress()
     }
 
     private fun calculateStreak(tasks: List<DailyTaskWithDetails>, now: LocalDate): Int {
