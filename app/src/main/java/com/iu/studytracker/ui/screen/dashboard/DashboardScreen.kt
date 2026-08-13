@@ -29,6 +29,9 @@ import android.content.Intent
 import android.net.Uri
 import com.iu.studytracker.data.model.DailyTaskWithDetails
 import com.iu.studytracker.ui.theme.*
+import java.time.format.TextStyle
+import java.util.Locale
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,15 +41,6 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var activeTimerTask by remember { mutableStateOf<DailyTaskWithDetails?>(null) }
-
-    if (activeTimerTask != null) {
-        FocusTimerDialog(
-            taskId = activeTimerTask!!.taskId,
-            taskTitle = activeTimerTask!!.topicTitle,
-            onDismiss = { activeTimerTask = null }
-        )
-    }
 
     Scaffold(
         topBar = {
@@ -100,7 +94,6 @@ fun DashboardScreen(
                 ActiveDashboardState(
                     uiState = uiState,
                     onToggleTask = viewModel::toggleTask,
-                    onStartFocus = { task -> activeTimerTask = task },
                     onRebalance = viewModel::rebalanceSchedule
                 )
             }
@@ -174,7 +167,6 @@ fun NoSetupState(onNavigateToSetup: () -> Unit) {
 fun ActiveDashboardState(
     uiState: DashboardUiState,
     onToggleTask: (Long, Boolean) -> Unit,
-    onStartFocus: (DailyTaskWithDetails) -> Unit,
     onRebalance: () -> Unit
 ) {
     BoxWithConstraints(
@@ -183,6 +175,8 @@ fun ActiveDashboardState(
             .background(MaterialTheme.colorScheme.background)
     ) {
         val isTablet = maxWidth >= 720.dp
+        var selectedTabIndex by remember { mutableIntStateOf(0) }
+        val tabs = listOf("Today's Tasks", "Degree Roadmap")
 
         if (isTablet) {
             // ── Tablet Dual-Pane Layout ──────────────────────────────
@@ -302,7 +296,7 @@ fun ActiveDashboardState(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "${uiState.completedEcts} of ${uiState.totalEcts} ECTS completed",
+                                        text = "${uiState.completedEcts} of ${uiState.totalEcts} ECTS",
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 14.sp
                                     )
@@ -386,53 +380,78 @@ fun ActiveDashboardState(
                     }
                 }
 
-                // Right Pane: Tasks List (58% width)
+                // Right Pane: Tasks List & Roadmap (58% width)
                 Column(
                     modifier = Modifier
                         .weight(0.58f)
                         .fillMaxHeight()
                 ) {
-                    Text(
-                        text = "Today's Study Schedule",
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    if (uiState.tasks.isEmpty() && uiState.isSetupComplete) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(32.dp),
-                                contentAlignment = Alignment.Center
+                    TabRow(
+                        selectedTabIndex = selectedTabIndex,
+                        containerColor = Color.Transparent,
+                        contentColor = Module1Color,
+                        indicator = { tabPositions ->
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                                color = Module1Color
+                            )
+                        }
+                    ) {
+                        tabs.forEachIndexed { index, title ->
+                            Tab(
+                                selected = selectedTabIndex == index,
+                                onClick = { selectedTabIndex = index },
+                                text = { 
+                                    Text(
+                                        text = title, 
+                                        fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (selectedTabIndex == index) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant
+                                    ) 
+                                }
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    if (selectedTabIndex == 0) {
+                        // Tasks List
+                        if (uiState.tasks.isEmpty() && uiState.isSetupComplete) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                             ) {
-                                Text(
-                                    text = "All caught up! No tasks for today.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 16.sp
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "All caught up! No tasks for today.",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(bottom = 80.dp)
+                            ) {
+                                itemsIndexed(uiState.tasks, key = { _, task -> task.taskId }) { _, task ->
+                                    TaskCard(
+                                        task = task,
+                                        onToggle = { onToggleTask(task.taskId, task.isCompleted) }
+                                    )
+                                }
                             }
                         }
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(bottom = 80.dp)
-                        ) {
-                            itemsIndexed(uiState.tasks, key = { _, task -> task.taskId }) { _, task ->
-                                TaskCard(
-                                    task = task,
-                                    onToggle = { onToggleTask(task.taskId, task.isCompleted) },
-                                    onStartFocus = { onStartFocus(task) }
-                                )
-                            }
-                        }
+                        // Roadmap Timeline
+                        RoadmapTimeline(uiState)
                     }
                 }
             }
@@ -592,84 +611,147 @@ fun ActiveDashboardState(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Module Legend
-                if (uiState.modules.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        uiState.modules.forEachIndexed { index, module ->
-                            val color = if (index == 0) Module1Color else Module2Color
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(color)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = Color.Transparent,
+                    contentColor = Module1Color,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                            color = Module1Color
+                        )
+                    }
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = { 
                                 Text(
-                                    text = module.name,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
+                                    text = title, 
+                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedTabIndex == index) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant
+                                ) 
+                            }
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (selectedTabIndex == 0) {
+                    // Task List or Empty Day State
+                    if (uiState.totalCount == 0 && uiState.isSetupComplete) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.Celebration,
+                                    contentDescription = "Rest Day",
+                                    tint = Module2Color,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Rest Day! 🎉",
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Take a break, you've earned it.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 24.dp),
+                            contentPadding = PaddingValues(bottom = 80.dp), // Space for FAB
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            itemsIndexed(uiState.tasks, key = { _, task -> task.taskId }) { _, task ->
+                                TaskCard(
+                                    task = task,
+                                    onToggle = { onToggleTask(task.taskId, task.isCompleted) }
                                 )
                             }
                         }
                     }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Task List or Empty Day State
-                if (uiState.totalCount == 0 && uiState.isSetupComplete) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.Celebration,
-                                contentDescription = "Rest Day",
-                                tint = Module2Color,
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Rest Day! 🎉",
-                                color = MaterialTheme.colorScheme.onBackground,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Take a break, you've earned it.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
                 } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 24.dp),
-                        contentPadding = PaddingValues(bottom = 80.dp), // Space for FAB
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        itemsIndexed(uiState.tasks, key = { _, task -> task.taskId }) { _, task ->
-                            TaskCard(
-                                task = task,
-                                onToggle = { onToggleTask(task.taskId, task.isCompleted) },
-                                onStartFocus = { onStartFocus(task) }
-                            )
-                        }
-                    }
+                    // Roadmap Timeline
+                    RoadmapTimeline(uiState)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RoadmapTimeline(uiState: DashboardUiState) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        contentPadding = PaddingValues(bottom = 80.dp)
+    ) {
+        items(uiState.monthPlans.size) { index ->
+            val monthPlan = uiState.monthPlans[index]
+            val monthName = java.time.Month.of(monthPlan.month).getDisplayName(TextStyle.FULL, Locale.getDefault())
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(Module2Color)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "$monthName ${monthPlan.year}",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (monthPlan.isSetupComplete) "Modules scheduled" else "Awaiting setup",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+        
+        if (uiState.targetGraduation.isNotBlank()) {
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Flag, contentDescription = "Graduation", tint = Module1Color, modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Graduation - ${uiState.targetGraduation}",
+                        color = Module1Color,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -679,8 +761,7 @@ fun ActiveDashboardState(
 @Composable
 fun TaskCard(
     task: DailyTaskWithDetails,
-    onToggle: () -> Unit,
-    onStartFocus: () -> Unit
+    onToggle: () -> Unit
 ) {
     val moduleColor = if (task.moduleOrderIndex == 0) Module1Color else Module2Color
     val context = LocalContext.current
@@ -761,9 +842,6 @@ fun TaskCard(
                         }) {
                             Icon(Icons.Default.Link, contentDescription = "Resource Link", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                    }
-                    IconButton(onClick = onStartFocus) {
-                        Icon(Icons.Default.Timer, contentDescription = "Focus Timer", tint = moduleColor)
                     }
                 }
             }

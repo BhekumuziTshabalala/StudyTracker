@@ -20,7 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import com.iu.studytracker.ui.screen.calendar.CalendarScreen
 import com.iu.studytracker.ui.screen.dashboard.DashboardScreen
 import com.iu.studytracker.ui.screen.progress.ProgressScreen
-import com.iu.studytracker.ui.screen.roadmap.RoadmapScreen
+import com.iu.studytracker.ui.screen.studynow.StudyNowScreen
 import com.iu.studytracker.ui.screen.setup.SetupScreen
 import com.iu.studytracker.ui.screen.curriculum.CurriculumScreen
 import com.iu.studytracker.ui.theme.Purple60
@@ -229,10 +229,8 @@ private fun AppNavHost(
             )
         }
 
-        composable(Screen.Roadmap.route) {
-            RoadmapScreen(
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
-            )
+        composable(Screen.StudyNow.route) {
+            StudyNowScreen()
         }
 
         composable(Screen.Curriculum.route) {

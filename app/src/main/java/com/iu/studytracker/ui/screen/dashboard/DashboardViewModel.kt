@@ -16,6 +16,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import com.iu.studytracker.data.database.entity.MonthPlan
 
 data class DashboardUiState(
     val isLoading: Boolean = true,
@@ -35,7 +36,9 @@ data class DashboardUiState(
     val curriculumModulesCompleted: Int = 0,
     val curriculumModulesTotal: Int = 0,
     val completedEcts: Int = 0,
-    val totalEcts: Int = 180
+    val totalEcts: Int = 180,
+    val monthPlans: List<MonthPlan> = emptyList(),
+    val targetGraduation: String = ""
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
@@ -102,7 +105,17 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             launch {
                 repository.observeCurrentDegreePlan().collect { plan ->
                     if (plan != null) {
-                        _uiState.update { it.copy(totalEcts = plan.totalCreditsRequired) }
+                        _uiState.update { it.copy(totalEcts = plan.totalCreditsRequired, targetGraduation = plan.targetGraduation) }
+                    }
+                }
+            }
+
+            launch {
+                repository.observeAllMonthPlans().collect { months ->
+                    _uiState.update { 
+                        it.copy(
+                            monthPlans = months.sortedWith(compareBy({ it.year }, { it.month }))
+                        ) 
                     }
                 }
             }
