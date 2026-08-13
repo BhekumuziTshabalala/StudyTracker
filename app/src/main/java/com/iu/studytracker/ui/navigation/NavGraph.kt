@@ -176,10 +176,32 @@ private fun AppNavHost(
         startDestination = Screen.Dashboard.route,
         modifier = modifier,
         enterTransition = {
-            fadeIn(animationSpec = tween(300))
+            fadeIn(animationSpec = tween(400)) + slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(400),
+                initialOffset = { it / 8 }
+            )
         },
         exitTransition = {
-            fadeOut(animationSpec = tween(300))
+            fadeOut(animationSpec = tween(400)) + slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(400),
+                targetOffset = { -it / 8 }
+            )
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(400)) + slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(400),
+                initialOffset = { -it / 8 }
+            )
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = tween(400)) + slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(400),
+                targetOffset = { it / 8 }
+            )
         }
     ) {
         composable(Screen.Dashboard.route) {

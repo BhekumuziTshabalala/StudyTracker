@@ -416,8 +416,14 @@ fun ModuleProgressSection(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(color))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = moduleName, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = moduleName, 
+                color = MaterialTheme.colorScheme.onBackground, 
+                fontSize = 16.sp, 
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(text = "$completed of $total topics", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         }
         Spacer(modifier = Modifier.height(8.dp))
