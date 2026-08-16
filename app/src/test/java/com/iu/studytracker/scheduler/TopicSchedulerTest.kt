@@ -20,10 +20,10 @@ class TopicSchedulerTest {
     // ── Helpers ─────────────────────────────────────────────────
 
     private fun makeTopic(id: Long, moduleId: Long, title: String, order: Int) =
-        Topic(id = id, moduleId = moduleId, title = title, orderIndex = order)
+        Topic(id = id.toString(), moduleId = moduleId.toString(), title = title, orderIndex = order)
 
     private fun makeModule(id: Long, planId: Long, name: String, order: Int) =
-        Module(id = id, monthPlanId = planId, name = name, orderIndex = order)
+        Module(id = id.toString(), monthPlanId = planId.toString(), name = name, orderIndex = order)
 
     private fun makeModuleWithTopics(
         moduleId: Long,
@@ -139,7 +139,7 @@ class TopicSchedulerTest {
 
         // 6 topics across 30 days
         val dates = (1..30).map { LocalDate.of(2026, 9, it) }
-        val tasks = TopicScheduler.distributeTasks(interleaved, dates, 1L)
+        val tasks = TopicScheduler.distributeTasks(interleaved, dates, "1")
 
         assertEquals(6, tasks.size)
 
@@ -162,7 +162,7 @@ class TopicSchedulerTest {
         val topics = (1..10).map { makeTopic(it.toLong(), 1, "T$it", it - 1) }
         val dates = (1..3).map { LocalDate.of(2026, 9, it) }
 
-        val tasks = TopicScheduler.distributeTasks(topics, dates, 1L)
+        val tasks = TopicScheduler.distributeTasks(topics, dates, "1")
 
         assertEquals(10, tasks.size)
 
@@ -177,7 +177,7 @@ class TopicSchedulerTest {
         val topics = (1..5).map { makeTopic(it.toLong(), 1, "T$it", it - 1) }
         val dates = (1..5).map { LocalDate.of(2026, 9, it) }
 
-        val tasks = TopicScheduler.distributeTasks(topics, dates, 1L)
+        val tasks = TopicScheduler.distributeTasks(topics, dates, "1")
 
         assertEquals(5, tasks.size)
 
@@ -192,7 +192,7 @@ class TopicSchedulerTest {
         val topics = listOf(makeTopic(1, 1, "Only Topic", 0))
         val dates = listOf(LocalDate.of(2026, 9, 1))
 
-        val tasks = TopicScheduler.distributeTasks(topics, dates, 1L)
+        val tasks = TopicScheduler.distributeTasks(topics, dates, "1")
 
         assertEquals(1, tasks.size)
         assertEquals("2026-09-01", tasks[0].scheduledDate)
@@ -213,7 +213,7 @@ class TopicSchedulerTest {
 
         // Schedule for September 2026, starting day 1
         val result = TopicScheduler.generateSchedule(
-            monthPlanId = 1L,
+            monthPlanId = "1",
             modulesWithTopics = listOf(modA, modB),
             year = 2026,
             month = 9,
@@ -225,10 +225,10 @@ class TopicSchedulerTest {
         assertEquals(30, result.availableDates.size)
 
         // All tasks should have monthPlanId = 1
-        assertTrue(result.tasks.all { it.monthPlanId == 1L })
+        assertTrue(result.tasks.all { it.monthPlanId == "1" })
 
         // All dates should be in September 2026
-        assertTrue(result.tasks.all { it.scheduledDate.startsWith("2026-09") })
+        assertTrue(result.tasks.all { it.scheduledDate?.startsWith("2026-09") == true })
 
         // Verify summary
         val summary = result.summary()
@@ -245,7 +245,7 @@ class TopicSchedulerTest {
 
         // Setup on August 20 → only 12 days left (Aug 20-31)
         val result = TopicScheduler.generateSchedule(
-            monthPlanId = 1L,
+            monthPlanId = "1",
             modulesWithTopics = listOf(modA, modB),
             year = 2026,
             month = 8,
@@ -256,7 +256,7 @@ class TopicSchedulerTest {
         assertEquals(12, result.availableDates.size)
 
         // First task should be on Aug 20 or later
-        assertTrue(result.tasks.first().scheduledDate >= "2026-08-20")
+        assertTrue((result.tasks.first().scheduledDate ?: "") >= "2026-08-20")
     }
 
     @Test
@@ -265,7 +265,7 @@ class TopicSchedulerTest {
         val modB = makeModuleWithTopics(2, 1, "Mod B", 1, emptyList())
 
         val result = TopicScheduler.generateSchedule(
-            monthPlanId = 1L,
+            monthPlanId = "1",
             modulesWithTopics = listOf(modA, modB),
             year = 2026,
             month = 9,
@@ -283,7 +283,7 @@ class TopicSchedulerTest {
         val modB = makeModuleWithTopics(2, 1, "Mod B", 1, listOf("B1", "B2", "B3"))
 
         val result = TopicScheduler.generateSchedule(
-            monthPlanId = 1L,
+            monthPlanId = "1",
             modulesWithTopics = listOf(modA, modB),
             year = 2026,
             month = 9,
