@@ -46,6 +46,17 @@ fun SettingsScreen(
         var gradDate by remember(degreePlan) { mutableStateOf(degreePlan?.targetGraduation ?: "July 2027") }
         var totalEcts by remember(degreePlan) { mutableStateOf(degreePlan?.totalCreditsRequired?.toString() ?: "180") }
 
+        val isFirebaseSyncEnabled by viewModel.isFirebaseSyncEnabled.collectAsState()
+        val firebaseProjectId by viewModel.firebaseProjectId.collectAsState()
+        val firebaseAppId by viewModel.firebaseAppId.collectAsState()
+        val firebaseApiKey by viewModel.firebaseApiKey.collectAsState()
+        val deviceId by viewModel.deviceId.collectAsState()
+        val linkedDevices by viewModel.linkedDevices.collectAsState()
+
+        var editProjectId by remember(firebaseProjectId) { mutableStateOf(firebaseProjectId ?: "") }
+        var editAppId by remember(firebaseAppId) { mutableStateOf(firebaseAppId ?: "") }
+        var editApiKey by remember(firebaseApiKey) { mutableStateOf(firebaseApiKey ?: "") }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -111,6 +122,140 @@ fun SettingsScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true
             )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Cloud Sync (Firebase)",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Enable Firebase Sync",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                Switch(
+                    checked = isFirebaseSyncEnabled,
+                    onCheckedChange = { viewModel.setFirebaseSyncEnabled(it) }
+                )
+            }
+
+            if (isFirebaseSyncEnabled) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Device ID: $deviceId",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = editProjectId,
+                    onValueChange = { 
+                        editProjectId = it
+                        viewModel.saveFirebaseConfig(it, editAppId, editApiKey)
+                    },
+                    label = { Text("Project ID") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = editAppId,
+                    onValueChange = { 
+                        editAppId = it
+                        viewModel.saveFirebaseConfig(editProjectId, it, editApiKey)
+                    },
+                    label = { Text("App ID") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = editApiKey,
+                    onValueChange = { 
+                        editApiKey = it
+                        viewModel.saveFirebaseConfig(editProjectId, editAppId, it)
+                    },
+                    label = { Text("Web API Key") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Provide your Firebase project credentials above. This will allow the app to initialize Firebase locally and sync your data to your own Firestore database.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (editProjectId.isNotEmpty() && editAppId.isNotEmpty() && editApiKey.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Linked Devices",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    if (linkedDevices.isEmpty()) {
+                        Text(
+                            text = "No devices synced yet or connecting...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        linkedDevices.forEach { deviceData ->
+                            val currentId = deviceData["deviceId"] as? String ?: ""
+                            val isCurrentDevice = currentId == deviceId
+
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = if (isCurrentDevice) "This Device" else "Device: ${currentId.take(8)}...",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = if (isCurrentDevice) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
+                                        )
+                                        Text(
+                                            text = "Last seen: ${deviceData["lastSeen"]}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    if (!isCurrentDevice) {
+                                        TextButton(onClick = { viewModel.removeDevice(currentId) }) {
+                                            Text("Unlink", color = MaterialTheme.colorScheme.error)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

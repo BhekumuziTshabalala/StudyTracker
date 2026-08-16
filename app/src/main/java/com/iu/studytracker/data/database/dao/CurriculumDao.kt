@@ -32,6 +32,10 @@ interface CurriculumDao {
     @Query("SELECT * FROM curriculum_topics WHERE curriculumModuleId IN (:moduleIds) ORDER BY id ASC")
     suspend fun getTopicsForModules(moduleIds: List<String>): List<CurriculumTopic>
 
+
+    @Query("SELECT * FROM curriculum_topics")
+    suspend fun getAllCurriculumTopics(): List<CurriculumTopic>
+
     @Query("DELETE FROM curriculum_modules")
     suspend fun clearCurriculum()
 

@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 enum class PomodoroStyle(val title: String, val focusMinutes: Int, val breakMinutes: Int) {
     CLASSIC("Classic (25/5)", 25, 5),
     EXTENDED("Extended (50/10)", 50, 10),
-    DEEP_WORK("Deep Work (90/15)", 90, 15)
+    DEEP_WORK("Deep Work (90/15)", 90, 15),
+    CUSTOM("Custom", 25, 5)
 }
 
 enum class TimerState {
@@ -23,10 +24,17 @@ enum class TimerState {
 
 data class StudyNowUiState(
     val selectedStyle: PomodoroStyle = PomodoroStyle.CLASSIC,
+    val customFocusMinutes: Int = 25,
+    val customBreakMinutes: Int = 5,
     val timerState: TimerState = TimerState.IDLE,
     val timeRemainingSeconds: Int = PomodoroStyle.CLASSIC.focusMinutes * 60,
     val totalFocusTimeSpentSeconds: Int = 0
-)
+) {
+    val currentFocusMinutes: Int
+        get() = if (selectedStyle == PomodoroStyle.CUSTOM) customFocusMinutes else selectedStyle.focusMinutes
+    val currentBreakMinutes: Int
+        get() = if (selectedStyle == PomodoroStyle.CUSTOM) customBreakMinutes else selectedStyle.breakMinutes
+}
 
 class StudyNowViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(StudyNowUiState())
@@ -39,11 +47,23 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
     fun selectStyle(style: PomodoroStyle) {
         if (_uiState.value.timerState != TimerState.IDLE && _uiState.value.timerState != TimerState.FINISHED) return
         _uiState.update { 
-            it.copy(
-                selectedStyle = style,
-                timeRemainingSeconds = style.focusMinutes * 60,
+            val updatedState = it.copy(selectedStyle = style)
+            updatedState.copy(
+                timeRemainingSeconds = updatedState.currentFocusMinutes * 60,
                 timerState = TimerState.IDLE
             ) 
+        }
+    }
+
+    fun updateCustomTime(focusMins: Int, breakMins: Int) {
+        if (_uiState.value.timerState != TimerState.IDLE && _uiState.value.timerState != TimerState.FINISHED) return
+        _uiState.update { 
+            val updatedState = it.copy(customFocusMinutes = focusMins, customBreakMinutes = breakMins)
+            if (updatedState.selectedStyle == PomodoroStyle.CUSTOM) {
+                updatedState.copy(timeRemainingSeconds = updatedState.currentFocusMinutes * 60)
+            } else {
+                updatedState
+            }
         }
     }
 
@@ -67,7 +87,7 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { 
             it.copy(
                 timerState = TimerState.FOCUSING,
-                timeRemainingSeconds = it.selectedStyle.focusMinutes * 60
+                timeRemainingSeconds = it.currentFocusMinutes * 60
             ) 
         }
         startTimerCountdown()
@@ -77,7 +97,7 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { 
             it.copy(
                 timerState = TimerState.BREAK,
-                timeRemainingSeconds = it.selectedStyle.breakMinutes * 60
+                timeRemainingSeconds = it.currentBreakMinutes * 60
             ) 
         }
         startTimerCountdown()
@@ -117,7 +137,7 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { 
             it.copy(
                 timerState = TimerState.IDLE,
-                timeRemainingSeconds = it.selectedStyle.focusMinutes * 60
+                timeRemainingSeconds = it.currentFocusMinutes * 60
             ) 
         }
     }

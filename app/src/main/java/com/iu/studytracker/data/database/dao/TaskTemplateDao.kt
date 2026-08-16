@@ -21,6 +21,12 @@ interface TaskTemplateDao {
     @Delete
     suspend fun delete(template: TaskTemplate)
 
+    @Query("DELETE FROM task_templates WHERE id = :templateId")
+    suspend fun deleteTemplate(templateId: String)
+
+    @Query("SELECT * FROM task_templates")
+    suspend fun getAllTaskTemplates(): List<TaskTemplate>
+
     @Query("SELECT * FROM task_templates ORDER BY title ASC")
     fun observeAll(): Flow<List<TaskTemplate>>
 }

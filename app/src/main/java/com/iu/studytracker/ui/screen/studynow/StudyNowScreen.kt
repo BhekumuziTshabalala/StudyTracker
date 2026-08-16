@@ -24,6 +24,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.iu.studytracker.ui.theme.Module1Color
 import com.iu.studytracker.ui.theme.Module2Color
@@ -35,61 +43,166 @@ fun StudyNowScreen(
     viewModel: StudyNowViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var isFullscreen by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Study Now") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
+    if (isFullscreen) {
+        Dialog(
+            onDismissRequest = { isFullscreen = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                decorFitsSystemWindows = false
             )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        Box(
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                StudyNowContent(
+                    uiState = uiState,
+                    viewModel = viewModel,
+                    isFullscreen = true,
+                    onToggleFullscreen = { isFullscreen = false }
+                )
+            }
+        }
+    } else {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Study Now") },
+                    actions = {
+                        IconButton(onClick = { isFullscreen = true }) {
+                            Icon(Icons.Default.Fullscreen, contentDescription = "Full Screen")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { paddingValues ->
+            StudyNowContent(
+                uiState = uiState,
+                viewModel = viewModel,
+                isFullscreen = false,
+                onToggleFullscreen = { isFullscreen = true },
+                modifier = Modifier.padding(paddingValues)
+            )
+        }
+    }
+}
+
+@Composable
+fun StudyNowContent(
+    uiState: StudyNowUiState,
+    viewModel: StudyNowViewModel,
+    isFullscreen: Boolean,
+    onToggleFullscreen: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .then(
+                if (isFullscreen) Modifier.systemBarsPadding() else Modifier
+            )
+    ) {
+        if (isFullscreen) {
+            IconButton(
+                onClick = onToggleFullscreen,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(Icons.Default.FullscreenExit, contentDescription = "Exit Full Screen")
+            }
+        }
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            if (isFullscreen) {
+                Spacer(modifier = Modifier.height(48.dp))
+            }
+
+            // Style Selector (Only show when IDLE)
+            AnimatedVisibility(
+                visible = uiState.timerState == TimerState.IDLE || uiState.timerState == TimerState.FINISHED,
+                enter = fadeIn(animationSpec = tween(300)) + expandVertically(),
+                exit = fadeOut(animationSpec = tween(300)) + shrinkVertically()
             ) {
-                // Style Selector (Only show when IDLE)
-                AnimatedVisibility(
-                    visible = uiState.timerState == TimerState.IDLE || uiState.timerState == TimerState.FINISHED,
-                    enter = fadeIn(animationSpec = tween(300)) + expandVertically(),
-                    exit = fadeOut(animationSpec = tween(300)) + shrinkVertically()
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     StyleSelector(
                         selectedStyle = uiState.selectedStyle,
                         onStyleSelected = { viewModel.selectStyle(it) }
                     )
+                    
+                    if (uiState.selectedStyle == PomodoroStyle.CUSTOM) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            var focusText by remember(uiState.customFocusMinutes) { mutableStateOf(uiState.customFocusMinutes.toString()) }
+                            var breakText by remember(uiState.customBreakMinutes) { mutableStateOf(uiState.customBreakMinutes.toString()) }
+                            
+                            OutlinedTextField(
+                                value = focusText,
+                                onValueChange = { 
+                                    if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                        focusText = it
+                                        val mins = it.toIntOrNull() ?: 0
+                                        if (mins > 0) viewModel.updateCustomTime(mins, uiState.customBreakMinutes)
+                                    }
+                                },
+                                label = { Text("Focus (min)") },
+                                modifier = Modifier.weight(1f),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = breakText,
+                                onValueChange = { 
+                                    if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                        breakText = it
+                                        val mins = it.toIntOrNull() ?: 0
+                                        if (mins > 0) viewModel.updateCustomTime(uiState.customFocusMinutes, mins)
+                                    }
+                                },
+                                label = { Text("Break (min)") },
+                                modifier = Modifier.weight(1f),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                singleLine = true
+                            )
+                        }
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Timer Display
-                TimerDisplay(
-                    uiState = uiState,
-                    modifier = Modifier.weight(1f)
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Controls
-                TimerControls(
-                    timerState = uiState.timerState,
-                    onToggle = { viewModel.toggleTimer() },
-                    onStop = { viewModel.stopTimer() }
-                )
-                
-                Spacer(modifier = Modifier.height(32.dp))
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Timer Display
+            TimerDisplay(
+                uiState = uiState,
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Controls
+            TimerControls(
+                timerState = uiState.timerState,
+                onToggle = { viewModel.toggleTimer() },
+                onStop = { viewModel.stopTimer() }
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

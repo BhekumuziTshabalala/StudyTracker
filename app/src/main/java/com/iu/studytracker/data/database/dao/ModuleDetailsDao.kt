@@ -29,6 +29,9 @@ interface ModuleDetailsDao {
     @Query("UPDATE module_tasks SET isCompleted = :isCompleted WHERE id = :taskId")
     suspend fun updateTaskCompletion(taskId: String, isCompleted: Boolean)
 
+    @Query("SELECT * FROM module_tasks")
+    suspend fun getAllModuleTasks(): List<ModuleTask>
+
     // --- Schedule Events ---
 
     @Query("SELECT * FROM module_schedule_events WHERE curriculumModuleId = :moduleId ORDER BY date ASC")
@@ -42,4 +45,7 @@ interface ModuleDetailsDao {
 
     @Delete
     suspend fun deleteScheduleEvent(event: ModuleScheduleEvent)
+
+    @Query("SELECT * FROM module_schedule_events")
+    suspend fun getAllModuleScheduleEvents(): List<ModuleScheduleEvent>
 }

@@ -925,6 +925,7 @@ fun TaskCard(
     val moduleColor = if (task.moduleOrderIndex == 0) Module1Color else Module2Color
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
+    var showTimeDialog by remember { mutableStateOf(false) }
     val subtasks by remember(task.task.id) { observeSubTasks(task.task.id) }.collectAsState(initial = emptyList())
     val isOverdue = task.task.scheduledDate != null && task.task.scheduledDate < todayDateString && !task.task.isCompleted
 
@@ -1017,14 +1018,7 @@ fun TaskCard(
             if (!task.task.isCompleted) {
                 Row {
                     IconButton(onClick = {
-                        val intent = Intent(context, com.iu.studytracker.service.FocusTimerService::class.java).apply {
-                            action = com.iu.studytracker.service.FocusTimerService.ACTION_START
-                            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_ID, task.task.id)
-                            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_TITLE, task.topicTitle)
-                            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_MINUTES, 25)
-                        }
-                        context.startService(intent)
-                        onNavigateToFocusMode()
+                        showTimeDialog = true
                     }) {
                         Icon(Icons.Default.PlayArrow, contentDescription = "Focus Mode", tint = moduleColor)
                     }
@@ -1107,6 +1101,44 @@ fun TaskCard(
                     }
                 }
             }
+        }
+        
+        if (showTimeDialog) {
+            var minutesText by remember { mutableStateOf("25") }
+            AlertDialog(
+                onDismissRequest = { showTimeDialog = false },
+                title = { Text("Set Focus Time") },
+                text = {
+                    OutlinedTextField(
+                        value = minutesText,
+                        onValueChange = { if (it.isEmpty() || it.all { char -> char.isDigit() }) minutesText = it },
+                        label = { Text("Minutes") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val mins = minutesText.toIntOrNull() ?: 25
+                            val intent = Intent(context, com.iu.studytracker.service.FocusTimerService::class.java).apply {
+                                action = com.iu.studytracker.service.FocusTimerService.ACTION_START
+                                putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_ID, task.task.id)
+                                putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_TITLE, task.topicTitle)
+                                putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_MINUTES, mins)
+                            }
+                            context.startService(intent)
+                            showTimeDialog = false
+                            onNavigateToFocusMode()
+                        }
+                    ) {
+                        Text("Start")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showTimeDialog = false }) { Text("Cancel") }
+                }
+            )
         }
     }
 }

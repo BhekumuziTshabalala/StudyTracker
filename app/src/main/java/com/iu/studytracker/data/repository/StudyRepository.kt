@@ -164,8 +164,8 @@ class StudyRepository(
         if (existing != null) return existing
 
         val newPlan = MonthPlan(year = now.year, month = now.monthValue)
-        val id = monthPlanDao.insert(newPlan)
-        return newPlan.copy(id = id)
+        monthPlanDao.insert(newPlan)
+        return newPlan
     }
 
     suspend fun getMonthPlan(year: Int, month: Int): MonthPlan? {
@@ -457,9 +457,11 @@ class StudyRepository(
             monthPlanDao.deleteById(existingPlan.id)
             val newPlan = MonthPlan(year = year, month = month)
             monthPlanDao.insert(newPlan)
+            newPlan.id
         } else {
             val newPlan = MonthPlan(year = year, month = month)
             monthPlanDao.insert(newPlan)
+            newPlan.id
         }
 
         // 2. Create the two modules
@@ -545,7 +547,7 @@ class StudyRepository(
         module2Name: String,
         module2Topics: List<String>,
         startFrom: LocalDate = LocalDate.now()
-    ): Pair<Long, TopicScheduler.ScheduleResult?> {
+    ): Pair<String, TopicScheduler.ScheduleResult?> {
         val monthPlanId = performMonthlySetup(
             year = year,
             month = month,
@@ -573,9 +575,11 @@ class StudyRepository(
             monthPlanDao.deleteById(existingPlan.id)
             val newPlan = MonthPlan(year = year, month = month)
             monthPlanDao.insert(newPlan)
+            newPlan.id
         } else {
             val newPlan = MonthPlan(year = year, month = month)
             monthPlanDao.insert(newPlan)
+            newPlan.id
         }
 
         // 2. Fetch the selected curriculum modules and topics

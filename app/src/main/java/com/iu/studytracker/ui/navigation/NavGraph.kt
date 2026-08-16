@@ -67,12 +67,7 @@ fun StudyTrackerNavGraph() {
                                     )
                                 }
                             },
-                            label = {
-                                Text(
-                                    text = screen.title,
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                            },
+                            // label removed for icon-only design
                             selected = selected,
                             onClick = {
                                 navController.navigate(screen.route) {
@@ -126,12 +121,7 @@ fun StudyTrackerNavGraph() {
                                             )
                                         }
                                     },
-                                    label = {
-                                        Text(
-                                            text = screen.title,
-                                            style = MaterialTheme.typography.labelMedium
-                                        )
-                                    },
+                                    // label removed for icon-only design
                                     selected = selected,
                                     onClick = {
                                         navController.navigate(screen.route) {
@@ -278,9 +268,9 @@ private fun AppNavHost(
 
         composable(
             route = Screen.ModuleDetails.route,
-            arguments = listOf(navArgument("moduleId") { type = NavType.LongType })
+            arguments = listOf(navArgument("moduleId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val moduleId = backStackEntry.arguments?.getLong("moduleId") ?: return@composable
+            val moduleId = backStackEntry.arguments?.getString("moduleId") ?: return@composable
             com.iu.studytracker.ui.screen.curriculum.details.ModuleDetailsScreen(
                 moduleId = moduleId,
                 onNavigateBack = { navController.popBackStack() }

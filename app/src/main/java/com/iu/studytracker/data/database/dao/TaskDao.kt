@@ -53,6 +53,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE parentTaskId = :parentId AND isDeleted = 0")
     fun observeSubTasks(parentId: String): Flow<List<Task>>
 
+    @Query("SELECT * FROM tasks")
+    suspend fun getAllTasks(): List<Task>
+
     @Transaction
     @Query("""
         SELECT t.*, 

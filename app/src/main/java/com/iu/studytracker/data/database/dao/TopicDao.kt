@@ -47,5 +47,8 @@ interface TopicDao {
 
     /** Delete all topics for a module (useful for re-entry). */
     @Query("DELETE FROM topics WHERE moduleId = :moduleId")
-    suspend fun deleteTopicsForModule(moduleId: String)
+    suspend fun deleteTopicsByModule(moduleId: String)
+
+    @Query("SELECT * FROM topics")
+    suspend fun getAllTopics(): List<Topic>
 }

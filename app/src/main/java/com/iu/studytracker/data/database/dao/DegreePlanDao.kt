@@ -15,6 +15,9 @@ interface DegreePlanDao {
     @Query("SELECT * FROM degree_plans LIMIT 1")
     fun observeCurrentPlan(): Flow<DegreePlan?>
 
+    @Query("SELECT * FROM degree_plans")
+    suspend fun getAllDegreePlans(): List<DegreePlan>
+
     @Query("SELECT * FROM degree_plans LIMIT 1")
     suspend fun getCurrentPlan(): DegreePlan?
 }

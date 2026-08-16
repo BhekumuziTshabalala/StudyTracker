@@ -46,4 +46,60 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             repository.insertDegreePlan(current.copy(totalCreditsRequired = ects))
         }
     }
+
+    val isFirebaseSyncEnabled = userPreferences.isFirebaseSyncEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
+    val firebaseProjectId = userPreferences.firebaseProjectId.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ""
+    )
+    val firebaseAppId = userPreferences.firebaseAppId.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ""
+    )
+    val firebaseApiKey = userPreferences.firebaseApiKey.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ""
+    )
+    val deviceId = userPreferences.deviceId.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ""
+    )
+
+    private val syncManager = (application as StudyTrackerApp).syncManager
+
+    val linkedDevices = syncManager.getLinkedDevices().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    fun removeDevice(id: String) {
+        viewModelScope.launch {
+            syncManager.removeDevice(id)
+        }
+    }
+
+    fun setFirebaseSyncEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferences.setFirebaseSyncEnabled(enabled)
+            // Need to initialize ID if enabling
+            if (enabled) {
+                userPreferences.getOrCreateDeviceId()
+            }
+        }
+    }
+
+    fun saveFirebaseConfig(projectId: String, appId: String, apiKey: String) {
+        viewModelScope.launch {
+            userPreferences.setFirebaseConfig(projectId, appId, apiKey)
+        }
+    }
 }

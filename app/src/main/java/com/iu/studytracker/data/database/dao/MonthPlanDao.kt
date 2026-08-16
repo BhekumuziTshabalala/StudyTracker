@@ -35,6 +35,10 @@ interface MonthPlanDao {
     @Query("SELECT * FROM month_plans ORDER BY year DESC, month DESC")
     fun observeAll(): Flow<List<MonthPlan>>
 
+
+    @Query("SELECT * FROM month_plans")
+    suspend fun getAllMonthPlans(): List<MonthPlan>
+
     /** Get month plan with its modules (relationship query). */
     @Transaction
     @Query("SELECT * FROM month_plans WHERE id = :id")

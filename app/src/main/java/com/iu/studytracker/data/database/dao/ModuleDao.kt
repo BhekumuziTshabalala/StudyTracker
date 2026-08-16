@@ -43,4 +43,7 @@ interface ModuleDao {
     @Transaction
     @Query("SELECT * FROM modules WHERE monthPlanId = :monthPlanId ORDER BY orderIndex ASC")
     suspend fun getModulesWithTopicsForMonth(monthPlanId: String): List<ModuleWithTopics>
+
+    @Query("SELECT * FROM modules")
+    suspend fun getAllModules(): List<Module>
 }

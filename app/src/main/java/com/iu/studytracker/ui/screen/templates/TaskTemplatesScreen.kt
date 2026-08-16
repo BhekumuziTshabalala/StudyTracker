@@ -1,6 +1,8 @@
 package com.iu.studytracker.ui.screen.templates
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -131,7 +133,12 @@ fun AddTemplateDialog(
                 )
                 // Simplified priority selection
                 Text("Priority", style = MaterialTheme.typography.labelSmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     TaskPriority.entries.forEach { p ->
                         FilterChip(
                             selected = priority == p,

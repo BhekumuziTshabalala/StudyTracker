@@ -16,7 +16,7 @@ import java.time.LocalDate
 
 data class SetupUiState(
     val curriculumModules: List<CurriculumModule> = emptyList(),
-    val selectedModuleIds: Set<Long> = emptySet(),
+    val selectedModuleIds: Set<String> = emptySet(),
     val isGenerating: Boolean = false,
     val scheduleSummary: TopicScheduler.ScheduleSummary? = null,
     val isComplete: Boolean = false,
@@ -39,7 +39,7 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun toggleModuleSelection(moduleId: Long) {
+    fun toggleModuleSelection(moduleId: String) {
         _uiState.update { state ->
             val selected = state.selectedModuleIds.toMutableSet()
             if (selected.contains(moduleId)) {
