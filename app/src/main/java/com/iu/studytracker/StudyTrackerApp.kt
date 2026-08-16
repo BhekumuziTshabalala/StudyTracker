@@ -20,9 +20,11 @@ class StudyTrackerApp : Application() {
             monthPlanDao = database.monthPlanDao(),
             moduleDao = database.moduleDao(),
             topicDao = database.topicDao(),
-            dailyTaskDao = database.dailyTaskDao(),
+            taskDao = database.taskDao(),
             degreePlanDao = database.degreePlanDao(),
-            curriculumDao = database.curriculumDao()
+            curriculumDao = database.curriculumDao(),
+            moduleDetailsDao = database.moduleDetailsDao(),
+            taskTemplateDao = database.taskTemplateDao()
         )
     }
 
@@ -34,6 +36,7 @@ class StudyTrackerApp : Application() {
         super.onCreate()
         createNotificationChannel()
         StudyReminderWorker.schedule(this)
+        com.iu.studytracker.worker.TaskRecurrenceWorker.schedule(this)
     }
 
     private fun createNotificationChannel() {

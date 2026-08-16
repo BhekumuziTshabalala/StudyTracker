@@ -11,15 +11,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavType
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.iu.studytracker.ui.screen.calendar.CalendarScreen
 import com.iu.studytracker.ui.screen.dashboard.DashboardScreen
-import com.iu.studytracker.ui.screen.progress.ProgressScreen
 import com.iu.studytracker.ui.screen.studynow.StudyNowScreen
 import com.iu.studytracker.ui.screen.setup.SetupScreen
 import com.iu.studytracker.ui.screen.curriculum.CurriculumScreen
@@ -211,6 +212,12 @@ private fun AppNavHost(
                 },
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
+                },
+                onNavigateToTemplates = {
+                    navController.navigate(Screen.Templates.route)
+                },
+                onNavigateToFocusMode = {
+                    navController.navigate(Screen.FocusMode.route)
                 }
             )
         }
@@ -245,10 +252,14 @@ private fun AppNavHost(
             )
         }
 
-        composable(Screen.Progress.route) {
-            ProgressScreen(
+        composable(Screen.Analytics.route) {
+            com.iu.studytracker.ui.screen.analytics.AnalyticsScreen(
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
+        }
+
+        composable(Screen.Matrix.route) {
+            com.iu.studytracker.ui.screen.matrix.EisenhowerMatrixScreen()
         }
 
         composable(Screen.StudyNow.route) {
@@ -258,12 +269,44 @@ private fun AppNavHost(
         composable(Screen.Curriculum.route) {
             CurriculumScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToModuleDetails = { moduleId ->
+                    navController.navigate(Screen.ModuleDetails.createRoute(moduleId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.ModuleDetails.route,
+            arguments = listOf(navArgument("moduleId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val moduleId = backStackEntry.arguments?.getLong("moduleId") ?: return@composable
+            com.iu.studytracker.ui.screen.curriculum.details.ModuleDetailsScreen(
+                moduleId = moduleId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
         composable(Screen.Settings.route) {
             com.iu.studytracker.ui.screen.settings.SettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Templates.route) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val repository = (context.applicationContext as com.iu.studytracker.StudyTrackerApp).repository
+            val viewModel: com.iu.studytracker.ui.screen.templates.TaskTemplatesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                factory = com.iu.studytracker.ui.screen.templates.TaskTemplatesViewModelFactory(repository)
+            )
+            com.iu.studytracker.ui.screen.templates.TaskTemplatesScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.FocusMode.route) {
+            com.iu.studytracker.ui.screen.focus.FocusModeScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

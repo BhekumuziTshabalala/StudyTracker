@@ -29,6 +29,7 @@ import com.iu.studytracker.ui.theme.*
 fun CurriculumScreen(
     onNavigateBack: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToModuleDetails: (String) -> Unit,
     viewModel: CurriculumViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -98,19 +99,78 @@ fun CurriculumScreen(
                 val activeModules = state.modules.filter { !it.isCompleted }
                 val completedModules = state.modules.filter { it.isCompleted }
                 
+                item {
+                    val requiredCredits = state.degreePlan?.totalCreditsRequired ?: 180
+                    val totalCreditsEarned = completedModules.size * 5
+                    val progress = if (requiredCredits > 0) totalCreditsEarned.toFloat() / requiredCredits else 0f
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Degree Roadmap",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp),
+                                color = Module2Color,
+                                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "$totalCreditsEarned Earned",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "$requiredCredits Required",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                
                 val grouped = activeModules.groupBy { it.semester }
                 grouped.forEach { (semester, modules) ->
                     item {
-                        Text(
-                            text = "Semester $semester",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Purple80,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                        )
+                        val totalCredits = modules.size * 5
+                        val completedCredits = modules.count { it.isCompleted } * 5
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Semester $semester",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Purple80
+                            )
+                            Text(
+                                text = "$completedCredits / $totalCredits ECTS",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (completedCredits == totalCredits && totalCredits > 0) StatusGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     items(modules) { module ->
                         CurriculumModuleItem(
                             module = module,
+                            onClick = { onNavigateToModuleDetails(module.id) },
                             onDelete = { viewModel.deleteModule(module.id) },
                             onToggleCompletion = { isCompleted ->
                                 viewModel.toggleModuleCompletion(module.id, isCompleted)
@@ -131,6 +191,7 @@ fun CurriculumScreen(
                     items(completedModules) { module ->
                         CurriculumModuleItem(
                             module = module,
+                            onClick = { onNavigateToModuleDetails(module.id) },
                             onDelete = { viewModel.deleteModule(module.id) },
                             onToggleCompletion = { isCompleted ->
                                 viewModel.toggleModuleCompletion(module.id, isCompleted)
@@ -174,12 +235,14 @@ fun CurriculumScreen(
 @Composable
 fun CurriculumModuleItem(
     module: CurriculumModule,
+    onClick: () -> Unit,
     onDelete: () -> Unit,
     onToggleCompletion: (Boolean) -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp),
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -234,6 +297,18 @@ fun ImportJsonModal(
         title = { Text("Import Curriculum JSON") },
         text = {
             Column {
+                Text(
+                    text = "Expected JSON format:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = "{\n  \"programme\": \"...\",\n  \"curriculum\": [\n    {\n      \"semester\": 1,\n      \"modules\": [\n        {\n          \"code\": \"...\",\n          \"name\": \"...\",\n          \"assessment\": \"...\",\n          \"core_topics\": [\"...\"]\n        }\n      ]\n    }\n  ]\n}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
                 OutlinedTextField(
                     value = jsonText,
                     onValueChange = onJsonChange,

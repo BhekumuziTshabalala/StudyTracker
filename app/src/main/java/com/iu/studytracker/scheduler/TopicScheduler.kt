@@ -1,6 +1,6 @@
 package com.iu.studytracker.scheduler
 
-import com.iu.studytracker.data.database.entity.DailyTask
+import com.iu.studytracker.data.database.entity.Task
 import com.iu.studytracker.data.database.entity.Topic
 import com.iu.studytracker.data.database.relation.ModuleWithTopics
 import java.time.LocalDate
@@ -26,7 +26,7 @@ object TopicScheduler {
     // ── Public API ──────────────────────────────────────────────
 
     /**
-     * Generates a list of [DailyTask] records representing the study schedule.
+     * Generates a list of [Task] records representing the study schedule.
      *
      * @param monthPlanId  The ID of the month plan these tasks belong to.
      * @param modulesWithTopics  The two modules with their topics.
@@ -35,10 +35,10 @@ object TopicScheduler {
      * @param startFrom  First eligible scheduling date. Defaults to today.
      *                   If this date is before the month, day 1 is used.
      *                   If after the month, an empty list is returned.
-     * @return List of [DailyTask] records ready for database insertion.
+     * @return List of [Task] records ready for database insertion.
      */
     fun generateSchedule(
-        monthPlanId: Long,
+        monthPlanId: String,
         modulesWithTopics: List<ModuleWithTopics>,
         year: Int,
         month: Int,
@@ -65,17 +65,17 @@ object TopicScheduler {
      * Re-distributes past, incomplete tasks across the remaining days of the month.
      */
     fun rebalanceSchedule(
-        incompleteTasks: List<DailyTask>,
+        incompleteTasks: List<Task>,
         year: Int,
         month: Int,
         today: LocalDate = LocalDate.now()
-    ): List<DailyTask> {
+    ): List<Task> {
         if (incompleteTasks.isEmpty()) return emptyList()
 
         val availableDates = getAvailableDates(year, month, today)
         if (availableDates.isEmpty()) return emptyList()
 
-        val updatedTasks = mutableListOf<DailyTask>()
+        val updatedTasks = mutableListOf<Task>()
         val baseCount = incompleteTasks.size / availableDates.size
         val extraDays = incompleteTasks.size % availableDates.size
         var taskIndex = 0
@@ -187,16 +187,17 @@ object TopicScheduler {
     internal fun distributeTasks(
         topics: List<Topic>,
         dates: List<LocalDate>,
-        monthPlanId: Long
-    ): List<DailyTask> {
-        val tasks = mutableListOf<DailyTask>()
+        monthPlanId: String
+    ): List<Task> {
+        val tasks = mutableListOf<Task>()
 
         if (topics.size <= dates.size) {
             // ── Sparse: spread topics evenly, leaving rest days ──
             for (i in topics.indices) {
                 val dayIndex = (i * dates.size) / topics.size
                 tasks.add(
-                    DailyTask(
+                    Task(
+                        title = topics[i].title,
                         monthPlanId = monthPlanId,
                         topicId = topics[i].id,
                         scheduledDate = dates[dayIndex].format(dateFormatter)
@@ -214,7 +215,8 @@ object TopicScheduler {
                 repeat(topicsToday) {
                     if (topicIndex < topics.size) {
                         tasks.add(
-                            DailyTask(
+                            Task(
+                                title = topics[topicIndex].title,
                                 monthPlanId = monthPlanId,
                                 topicId = topics[topicIndex].id,
                                 scheduledDate = dates[dayIndex].format(dateFormatter)
@@ -254,7 +256,7 @@ object TopicScheduler {
     /**
      * Computes summary statistics for a generated schedule.
      */
-    fun summarize(tasks: List<DailyTask>, availableDates: List<LocalDate>): ScheduleSummary {
+    fun summarize(tasks: List<Task>, availableDates: List<LocalDate>): ScheduleSummary {
         if (tasks.isEmpty() || availableDates.isEmpty()) {
             return ScheduleSummary(0, 0, 0f, 0, 0, "", "")
         }
@@ -282,7 +284,7 @@ object TopicScheduler {
      * used, so callers can compute summaries without re-deriving dates.
      */
     data class ScheduleResult(
-        val tasks: List<DailyTask>,
+        val tasks: List<Task>,
         val availableDates: List<LocalDate>
     ) {
         val isEmpty: Boolean get() = tasks.isEmpty()

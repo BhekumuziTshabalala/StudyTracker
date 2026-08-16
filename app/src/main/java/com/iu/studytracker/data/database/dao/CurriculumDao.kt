@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CurriculumDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCurriculumModule(module: CurriculumModule): Long
+    suspend fun insertCurriculumModule(module: CurriculumModule)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCurriculumTopics(topics: List<CurriculumTopic>)
@@ -24,24 +24,24 @@ interface CurriculumDao {
     suspend fun getAllCurriculumModulesSync(): List<CurriculumModule>
 
     @Query("UPDATE curriculum_modules SET isCompleted = :isCompleted WHERE id = :moduleId")
-    suspend fun updateModuleCompletion(moduleId: Long, isCompleted: Boolean)
+    suspend fun updateModuleCompletion(moduleId: String, isCompleted: Boolean)
 
     @Query("SELECT * FROM curriculum_topics WHERE curriculumModuleId = :moduleId ORDER BY id ASC")
-    suspend fun getTopicsForModule(moduleId: Long): List<CurriculumTopic>
+    suspend fun getTopicsForModule(moduleId: String): List<CurriculumTopic>
     
     @Query("SELECT * FROM curriculum_topics WHERE curriculumModuleId IN (:moduleIds) ORDER BY id ASC")
-    suspend fun getTopicsForModules(moduleIds: List<Long>): List<CurriculumTopic>
+    suspend fun getTopicsForModules(moduleIds: List<String>): List<CurriculumTopic>
 
     @Query("DELETE FROM curriculum_modules")
     suspend fun clearCurriculum()
 
     @Query("DELETE FROM curriculum_modules WHERE id = :moduleId")
-    suspend fun deleteCurriculumModule(moduleId: Long)
+    suspend fun deleteCurriculumModule(moduleId: String)
 
     @Transaction
     suspend fun insertModuleWithTopics(module: CurriculumModule, topics: List<CurriculumTopic>) {
-        val moduleId = insertCurriculumModule(module)
-        val topicsWithIds = topics.map { it.copy(curriculumModuleId = moduleId) }
+        insertCurriculumModule(module)
+        val topicsWithIds = topics.map { it.copy(curriculumModuleId = module.id) }
         insertCurriculumTopics(topicsWithIds)
     }
 }

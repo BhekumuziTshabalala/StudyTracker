@@ -27,7 +27,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import android.net.Uri
-import com.iu.studytracker.data.model.DailyTaskWithDetails
+import com.iu.studytracker.data.model.TaskWithDetails
+import kotlinx.coroutines.flow.Flow
 import com.iu.studytracker.ui.theme.*
 import java.time.format.TextStyle
 import java.util.Locale
@@ -38,6 +39,8 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 fun DashboardScreen(
     onNavigateToSetup: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToTemplates: () -> Unit,
+    onNavigateToFocusMode: () -> Unit,
     viewModel: DashboardViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -53,6 +56,9 @@ fun DashboardScreen(
                     ) 
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToTemplates) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = "Templates")
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
@@ -93,8 +99,13 @@ fun DashboardScreen(
             } else {
                 ActiveDashboardState(
                     uiState = uiState,
-                    onToggleTask = viewModel::toggleTask,
-                    onRebalance = viewModel::rebalanceSchedule
+                    onToggleTask = viewModel::toggleTaskCompletion,
+                    onRebalance = viewModel::rebalanceSchedule,
+                    onToggleSubTask = viewModel::toggleTaskCompletion,
+                    onAddSubTask = viewModel::addSubTask,
+                    observeSubTasks = viewModel::observeSubTasks,
+                    onNavigateToFocusMode = onNavigateToFocusMode,
+                    onRescheduleOverdue = viewModel::rescheduleOverdueTasks
                 )
             }
         }
@@ -166,8 +177,13 @@ fun NoSetupState(onNavigateToSetup: () -> Unit) {
 @Composable
 fun ActiveDashboardState(
     uiState: DashboardUiState,
-    onToggleTask: (Long, Boolean) -> Unit,
-    onRebalance: () -> Unit
+    onToggleTask: (String, Boolean) -> Unit,
+    onRebalance: () -> Unit,
+    onToggleSubTask: (String, Boolean) -> Unit,
+    onAddSubTask: (String, String) -> Unit,
+    observeSubTasks: (String) -> Flow<List<TaskWithDetails>>,
+    onNavigateToFocusMode: () -> Unit,
+    onRescheduleOverdue: () -> Unit
 ) {
     BoxWithConstraints(
         modifier = Modifier
@@ -416,6 +432,39 @@ fun ActiveDashboardState(
                     
                     if (selectedTabIndex == 0) {
                         // Tasks List
+                        if (uiState.overdueTasks.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.errorContainer)
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "${uiState.overdueTasks.size} Overdue Task${if (uiState.overdueTasks.size > 1) "s" else ""}",
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                    Text(
+                                        text = "From past days",
+                                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                Button(
+                                    onClick = onRescheduleOverdue,
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onErrorContainer, contentColor = MaterialTheme.colorScheme.errorContainer)
+                                ) {
+                                    Text("Reschedule to Today")
+                                }
+                            }
+                        }
+
                         if (uiState.tasks.isEmpty() && uiState.isSetupComplete) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -441,10 +490,15 @@ fun ActiveDashboardState(
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                                 contentPadding = PaddingValues(bottom = 80.dp)
                             ) {
-                                itemsIndexed(uiState.tasks, key = { _, task -> task.taskId }) { _, task ->
+                                itemsIndexed(uiState.tasks, key = { _, task -> task.task.id }) { _, task ->
                                     TaskCard(
                                         task = task,
-                                        onToggle = { onToggleTask(task.taskId, task.isCompleted) }
+                                        todayDateString = uiState.todayDateString,
+                                        onToggle = { onToggleTask(task.task.id, task.task.isCompleted) },
+                                        onToggleSubTask = onToggleSubTask,
+                                        onAddSubTask = { title -> onAddSubTask(task.task.id, title) },
+                                        observeSubTasks = observeSubTasks,
+                                        onNavigateToFocusMode = onNavigateToFocusMode
                                     )
                                 }
                             }
@@ -643,6 +697,38 @@ fun ActiveDashboardState(
 
                 if (selectedTabIndex == 0) {
                     // Task List or Empty Day State
+                    if (uiState.overdueTasks.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 8.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = "${uiState.overdueTasks.size} Overdue Task${if (uiState.overdueTasks.size > 1) "s" else ""}",
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = "From past days",
+                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                                    fontSize = 12.sp
+                                )
+                            }
+                            Button(
+                                onClick = onRescheduleOverdue,
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onErrorContainer, contentColor = MaterialTheme.colorScheme.errorContainer)
+                            ) {
+                                Text("Reschedule to Today")
+                            }
+                        }
+                    }
                     if (uiState.totalCount == 0 && uiState.isSetupComplete) {
                         Box(
                             modifier = Modifier
@@ -679,10 +765,15 @@ fun ActiveDashboardState(
                             contentPadding = PaddingValues(bottom = 80.dp), // Space for FAB
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            itemsIndexed(uiState.tasks, key = { _, task -> task.taskId }) { _, task ->
+                            itemsIndexed(uiState.tasks, key = { _, task -> task.task.id }) { _, task ->
                                 TaskCard(
                                     task = task,
-                                    onToggle = { onToggleTask(task.taskId, task.isCompleted) }
+                                    todayDateString = uiState.todayDateString,
+                                    onToggle = { onToggleTask(task.task.id, task.task.isCompleted) },
+                                    onToggleSubTask = onToggleSubTask,
+                                    onAddSubTask = { title -> onAddSubTask(task.task.id, title) },
+                                    observeSubTasks = observeSubTasks,
+                                    onNavigateToFocusMode = onNavigateToFocusMode
                                 )
                             }
                         }
@@ -704,6 +795,69 @@ fun RoadmapTimeline(uiState: DashboardUiState) {
             .padding(horizontal = 24.dp),
         contentPadding = PaddingValues(bottom = 80.dp)
     ) {
+        if (uiState.semesterProgress.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Semester Progress",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+            items(uiState.semesterProgress.size) { index ->
+                val sem = uiState.semesterProgress[index]
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(Module1Color)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Semester ${sem.semester}",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            progress = if (sem.totalCredits > 0) sem.completedCredits.toFloat() / sem.totalCredits else 0f,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp)),
+                            color = Module1Color,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${sem.completedCredits} / ${sem.totalCredits} ECTS",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Timeline",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+        }
+
         items(uiState.monthPlans.size) { index ->
             val monthPlan = uiState.monthPlans[index]
             val monthName = java.time.Month.of(monthPlan.month).getDisplayName(TextStyle.FULL, Locale.getDefault())
@@ -760,11 +914,20 @@ fun RoadmapTimeline(uiState: DashboardUiState) {
 
 @Composable
 fun TaskCard(
-    task: DailyTaskWithDetails,
-    onToggle: () -> Unit
+    task: TaskWithDetails,
+    todayDateString: String,
+    onToggle: () -> Unit,
+    onToggleSubTask: (String, Boolean) -> Unit,
+    onAddSubTask: (String) -> Unit,
+    observeSubTasks: (String) -> kotlinx.coroutines.flow.Flow<List<TaskWithDetails>>,
+    onNavigateToFocusMode: () -> Unit
 ) {
     val moduleColor = if (task.moduleOrderIndex == 0) Module1Color else Module2Color
     val context = LocalContext.current
+    var expanded by remember { mutableStateOf(false) }
+    val subtasks by remember(task.task.id) { observeSubTasks(task.task.id) }.collectAsState(initial = emptyList())
+    val isOverdue = task.task.scheduledDate != null && task.task.scheduledDate < todayDateString && !task.task.isCompleted
+
 
     Card(
         modifier = Modifier
@@ -781,7 +944,7 @@ fun TaskCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
-                checked = task.isCompleted,
+                checked = task.task.isCompleted,
                 onCheckedChange = { onToggle() },
                 colors = CheckboxDefaults.colors(
                     checkedColor = moduleColor,
@@ -792,7 +955,7 @@ fun TaskCard(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 AnimatedContent(
-                    targetState = task.isCompleted,
+                    targetState = task.task.isCompleted,
                     label = "text_strikethrough"
                 ) { isCompleted ->
                     Text(
@@ -818,19 +981,53 @@ fun TaskCard(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    if (task.actualMinutesSpent > 0) {
+                    if (isOverdue) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "${task.actualMinutesSpent}m spent",
+                            text = "Overdue",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                    if (task.task.actualMinutesSpent > 0) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${task.task.actualMinutesSpent}m spent",
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             fontSize = 10.sp
+                        )
+                    }
+                    if (task.task.recurrenceRule != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.Repeat,
+                            contentDescription = "Recurring",
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     }
                 }
             }
             // Action Buttons
-            if (!task.isCompleted) {
+            if (!task.task.isCompleted) {
                 Row {
+                    IconButton(onClick = {
+                        val intent = Intent(context, com.iu.studytracker.service.FocusTimerService::class.java).apply {
+                            action = com.iu.studytracker.service.FocusTimerService.ACTION_START
+                            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_ID, task.task.id)
+                            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_TITLE, task.topicTitle)
+                            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_MINUTES, 25)
+                        }
+                        context.startService(intent)
+                        onNavigateToFocusMode()
+                    }) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Focus Mode", tint = moduleColor)
+                    }
                     if (!task.resourceUri.isNullOrEmpty()) {
                         IconButton(onClick = {
                             try {
@@ -842,6 +1039,71 @@ fun TaskCard(
                         }) {
                             Icon(Icons.Default.Link, contentDescription = "Resource Link", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                    }
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(
+                            imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = "Expand Subtasks",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+        
+        AnimatedVisibility(visible = expanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 48.dp, end = 16.dp, bottom = 16.dp)
+            ) {
+                subtasks.forEach { subTask ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(vertical = 4.dp).clickable { onToggleSubTask(subTask.task.id, subTask.task.isCompleted) }
+                    ) {
+                        Checkbox(
+                            checked = subTask.task.isCompleted,
+                            onCheckedChange = { onToggleSubTask(subTask.task.id, subTask.task.isCompleted) },
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = subTask.task.title,
+                            fontSize = 14.sp,
+                            textDecoration = if (subTask.task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                            color = if (subTask.task.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                }
+                
+                var isAdding by remember { mutableStateOf(false) }
+                var newTitle by remember { mutableStateOf("") }
+                
+                if (isAdding) {
+                    OutlinedTextField(
+                        value = newTitle,
+                        onValueChange = { newTitle = it },
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        placeholder = { Text("Subtask title...", fontSize = 14.sp) },
+                        singleLine = true,
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                if (newTitle.isNotBlank()) {
+                                    onAddSubTask(newTitle)
+                                    newTitle = ""
+                                    isAdding = false
+                                }
+                            }) {
+                                Icon(Icons.Default.Check, "Add")
+                            }
+                        }
+                    )
+                } else {
+                    TextButton(onClick = { isAdding = true }) {
+                        Icon(Icons.Default.Add, "Add Subtask", modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add Subtask", fontSize = 12.sp)
                     }
                 }
             }

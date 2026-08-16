@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 interface MonthPlanDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(monthPlan: MonthPlan): Long
+    suspend fun insert(monthPlan: MonthPlan)
 
     /** Get a plan for a specific calendar month. */
     @Query("SELECT * FROM month_plans WHERE year = :year AND month = :month LIMIT 1")
@@ -25,11 +25,11 @@ interface MonthPlanDao {
 
     /** Get the plan by its primary key. */
     @Query("SELECT * FROM month_plans WHERE id = :id")
-    suspend fun getById(id: Long): MonthPlan?
+    suspend fun getById(id: String): MonthPlan?
 
     /** Mark setup as complete after modules and topics have been entered. */
     @Query("UPDATE month_plans SET isSetupComplete = 1 WHERE id = :id")
-    suspend fun markSetupComplete(id: Long)
+    suspend fun markSetupComplete(id: String)
 
     /** Get all month plans ordered by most recent first. */
     @Query("SELECT * FROM month_plans ORDER BY year DESC, month DESC")
@@ -38,9 +38,9 @@ interface MonthPlanDao {
     /** Get month plan with its modules (relationship query). */
     @Transaction
     @Query("SELECT * FROM month_plans WHERE id = :id")
-    suspend fun getWithModules(id: Long): MonthPlanWithModules?
+    suspend fun getWithModules(id: String): MonthPlanWithModules?
 
     /** Delete a specific month plan (cascades to modules, topics, tasks). */
     @Query("DELETE FROM month_plans WHERE id = :id")
-    suspend fun deleteById(id: Long)
+    suspend fun deleteById(id: String)
 }

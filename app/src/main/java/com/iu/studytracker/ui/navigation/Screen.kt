@@ -20,13 +20,19 @@ sealed class Screen(
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Dashboard)
     object Setup : Screen("setup", "Monthly Setup")
     object Calendar : Screen("calendar", "Calendar", Icons.Default.CalendarMonth)
-    object Progress : Screen("progress", "Progress", Icons.AutoMirrored.Filled.TrendingUp)
+    object Analytics : Screen("analytics", "Analytics", Icons.AutoMirrored.Filled.TrendingUp)
     object StudyNow : Screen("study_now", "Study", Icons.Default.Timer)
     object Curriculum : Screen("curriculum", "Curriculum", Icons.Default.School)
+    object ModuleDetails : Screen("module_details/{moduleId}", "Module Details") {
+        fun createRoute(moduleId: Long) = "module_details/$moduleId"
+    }
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
+    object Templates : Screen("templates", "Templates")
+    object FocusMode : Screen("focus_mode", "Focus Mode")
+
+    object Matrix : Screen("matrix", "Matrix", Icons.Default.Dashboard) // Reusing icon for now or better GridView
 
     companion object {
-        /** Bottom navigation items (excludes Setup which is a full-screen flow). */
-        val bottomNavItems = listOf(Dashboard, StudyNow, Calendar, Progress, Curriculum)
+        val bottomNavItems = listOf(Dashboard, Matrix, StudyNow, Calendar, Curriculum, Analytics)
     }
 }

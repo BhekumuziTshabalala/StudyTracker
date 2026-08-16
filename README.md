@@ -248,6 +248,14 @@ Run the automated test suite to verify scheduling algorithms, database operation
 
 ---
 
+## 📝 Changelog
+
+### Recent Updates
+- **Automated App Screenshots**: Bypassed Espresso API 35 `InputManager` conflicts by writing a daemon-based ADB script that automatically grabs high-quality screenshots (`SCREENSHOTS.md`) and interacts with the UI directly.
+- **UI/UX (Progress Screen)**: Fixed a layout overflow issue where long module titles would compress the progress text ("X of Y topics"), causing it to render vertically instead of inline. Applied flexible weighting to ensure long titles wrap properly to the next line.
+
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

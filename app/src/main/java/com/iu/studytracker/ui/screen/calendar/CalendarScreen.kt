@@ -177,7 +177,7 @@ fun CalendarScreen(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     uiState.selectedDateTasks.forEach { task ->
-                                        CalendarTaskItem(task = task)
+                                        CalendarTaskItem(taskWithDetails = task)
                                     }
                                 }
                             }
@@ -239,7 +239,7 @@ fun CalendarScreen(
                             Text("No tasks scheduled for this day.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             uiState.selectedDateTasks.forEach { task ->
-                                CalendarTaskItem(task = task)
+                                CalendarTaskItem(taskWithDetails = task)
                             }
                         }
                     }
@@ -270,7 +270,7 @@ private fun CalendarGridContent(
                         val isSelected = uiState.selectedDate == dateStr
                         val isToday = uiState.todayString == dateStr
                         val tasks = uiState.tasksByDate[dateStr] ?: emptyList()
-                        val allCompleted = tasks.isNotEmpty() && tasks.all { it.isCompleted }
+                        val allCompleted = tasks.isNotEmpty() && tasks.all { it.task.isCompleted }
 
                         Box(
                             modifier = Modifier
@@ -330,7 +330,8 @@ private fun CalendarGridContent(
 }
 
 @Composable
-private fun CalendarTaskItem(task: com.iu.studytracker.data.model.DailyTaskWithDetails) {
+private fun CalendarTaskItem(taskWithDetails: com.iu.studytracker.data.model.TaskWithDetails) {
+    val task = taskWithDetails.task
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
@@ -344,21 +345,21 @@ private fun CalendarTaskItem(task: com.iu.studytracker.data.model.DailyTaskWithD
         ) {
             Icon(
                 imageVector = if (task.isCompleted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-                contentDescription = null,
+                contentDescription = "Task Status",
                 tint = if (task.isCompleted) StatusGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = task.topicTitle,
+                    text = taskWithDetails.topicTitle,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = task.moduleName,
-                    color = when (task.moduleOrderIndex % 3) {
+                    text = taskWithDetails.moduleName,
+                    color = when (taskWithDetails.moduleOrderIndex % 3) {
                         0 -> Module1Color
                         1 -> Module2Color
                         else -> StatusOrange

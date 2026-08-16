@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.iu.studytracker.StudyTrackerApp
-import com.iu.studytracker.data.model.DailyTaskWithDetails
+import com.iu.studytracker.data.model.TaskWithDetails
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,9 +22,9 @@ data class CalendarUiState(
     val monthName: String = "",
     val daysInMonth: Int = 0,
     val firstDayOfWeek: Int = 0, // 1=Monday ... 7=Sunday
-    val tasksByDate: Map<String, List<DailyTaskWithDetails>> = emptyMap(),
+    val tasksByDate: Map<String, List<TaskWithDetails>> = emptyMap(),
     val selectedDate: String? = null,
-    val selectedDateTasks: List<DailyTaskWithDetails> = emptyList(),
+    val selectedDateTasks: List<TaskWithDetails> = emptyList(),
     val todayString: String = "",
     val hasSetup: Boolean = false
 )
@@ -84,7 +84,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
                     tasksJob?.cancel()
                     tasksJob = launch {
                         repository.observeAllTasksWithDetailsForMonth(plan.id).collect { tasks ->
-                            val grouped = tasks.groupBy { it.scheduledDate }
+                            val grouped = tasks.groupBy { it.task.scheduledDate ?: "" }
                             val selected = _uiState.value.selectedDate
                             _uiState.update {
                                 it.copy(

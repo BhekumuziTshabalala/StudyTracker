@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface DegreePlanDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(degreePlan: DegreePlan): Long
+    suspend fun insert(degreePlan: DegreePlan)
 
     @Query("SELECT * FROM degree_plans LIMIT 1")
     fun observeCurrentPlan(): Flow<DegreePlan?>

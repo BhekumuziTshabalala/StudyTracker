@@ -5,6 +5,8 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+import java.util.UUID
+
 /**
  * A single topic or chapter within a [Module].
  *
@@ -25,11 +27,11 @@ import androidx.room.PrimaryKey
     indices = [Index(value = ["moduleId"])]
 )
 data class Topic(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = UUID.randomUUID().toString(),
 
     /** FK → modules.id */
-    val moduleId: Long,
+    val moduleId: String,
 
     /** Topic title, e.g. "Binary Search Trees" */
     val title: String,
@@ -41,5 +43,7 @@ data class Topic(
     val resourceUri: String? = null,
 
     /** Specific pages or sections to cover (e.g. "Pages 20-45") */
-    val pageRange: String? = null
+    val pageRange: String? = null,
+    
+    val updatedAt: Long = System.currentTimeMillis()
 )

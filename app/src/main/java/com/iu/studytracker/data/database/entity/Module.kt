@@ -5,6 +5,8 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+import java.util.UUID
+
 /**
  * One of the two modules studied in a given month.
  *
@@ -26,15 +28,17 @@ import androidx.room.PrimaryKey
     indices = [Index(value = ["monthPlanId"])]
 )
 data class Module(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = UUID.randomUUID().toString(),
 
     /** FK → month_plans.id */
-    val monthPlanId: Long,
+    val monthPlanId: String,
 
     /** Display name, e.g. "Data Structures & Algorithms" */
     val name: String,
 
     /** 0 = first module, 1 = second module within the month */
-    val orderIndex: Int
+    val orderIndex: Int,
+    
+    val updatedAt: Long = System.currentTimeMillis()
 )

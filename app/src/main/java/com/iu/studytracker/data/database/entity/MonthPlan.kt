@@ -4,6 +4,8 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+import java.util.UUID
+
 /**
  * Represents a single month's study plan.
  *
@@ -17,8 +19,8 @@ import androidx.room.PrimaryKey
     indices = [Index(value = ["year", "month"], unique = true)]
 )
 data class MonthPlan(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = UUID.randomUUID().toString(),
 
     /** Calendar year (e.g. 2026) */
     val year: Int,
@@ -33,5 +35,7 @@ data class MonthPlan(
     val createdAt: Long = System.currentTimeMillis(),
 
     /** Optional reference to the macro-level degree plan */
-    val degreePlanId: Long? = null
+    val degreePlanId: String? = null,
+    
+    val updatedAt: Long = System.currentTimeMillis()
 )

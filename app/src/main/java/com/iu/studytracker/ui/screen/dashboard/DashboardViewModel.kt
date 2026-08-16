@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.iu.studytracker.StudyTrackerApp
 import com.iu.studytracker.data.database.entity.Module
-import com.iu.studytracker.data.model.DailyTaskWithDetails
+import com.iu.studytracker.data.model.TaskWithDetails
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,15 +18,22 @@ import java.time.format.TextStyle
 import java.util.Locale
 import com.iu.studytracker.data.database.entity.MonthPlan
 
+data class SemesterProgress(
+    val semester: Int,
+    val completedCredits: Int,
+    val totalCredits: Int
+)
+
 data class DashboardUiState(
     val isLoading: Boolean = true,
     val hasMonthPlan: Boolean = false,
     val isSetupComplete: Boolean = false,
-    val monthPlanId: Long = 0,
+    val monthPlanId: String = "",
     val todayFormatted: String = "",
+    val todayDateString: String = "",
     val dayOfWeek: String = "",
     val monthName: String = "",
-    val tasks: List<DailyTaskWithDetails> = emptyList(),
+    val tasks: List<TaskWithDetails> = emptyList(),
     val completedCount: Int = 0,
     val totalCount: Int = 0,
     val modules: List<Module> = emptyList(),
@@ -38,7 +45,9 @@ data class DashboardUiState(
     val completedEcts: Int = 0,
     val totalEcts: Int = 180,
     val monthPlans: List<MonthPlan> = emptyList(),
-    val targetGraduation: String = ""
+    val targetGraduation: String = "",
+    val semesterProgress: List<SemesterProgress> = emptyList(),
+    val overdueTasks: List<com.iu.studytracker.data.database.entity.Task> = emptyList()
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
@@ -59,6 +68,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             val dayOfWeek = now.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
             val monthName = now.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
 
+            val todayDateString = repository.todayString()
+
             val plan = repository.getOrCreateCurrentMonthPlan()
 
             if (!plan.isSetupComplete) {
@@ -69,6 +80,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         isSetupComplete = false,
                         monthPlanId = plan.id,
                         todayFormatted = todayFormatted,
+                        todayDateString = todayDateString,
                         dayOfWeek = dayOfWeek,
                         monthName = monthName
                     )
@@ -86,6 +98,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     isSetupComplete = true,
                     monthPlanId = plan.id,
                     todayFormatted = todayFormatted,
+                    todayDateString = todayDateString,
                     dayOfWeek = dayOfWeek,
                     monthName = monthName,
                     modules = modules
@@ -123,11 +136,21 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             launch {
                 repository.observeAllCurriculumModules().collect { currModules ->
                     val completed = currModules.count { m -> m.isCompleted }
+                    
+                    val semesterProgress = currModules.groupBy { it.semester }.map { (sem, mods) ->
+                        SemesterProgress(
+                            semester = sem,
+                            completedCredits = mods.count { it.isCompleted } * 5,
+                            totalCredits = mods.size * 5
+                        )
+                    }.sortedBy { it.semester }
+
                     _uiState.update {
                         it.copy(
                             curriculumModulesTotal = currModules.size,
                             curriculumModulesCompleted = completed,
-                            completedEcts = completed * 5
+                            completedEcts = completed * 5,
+                            semesterProgress = semesterProgress
                         )
                     }
                 }
@@ -138,23 +161,38 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 _uiState.update {
                     it.copy(
                         tasks = tasks,
-                        completedCount = tasks.count { t -> t.isCompleted },
+                        completedCount = tasks.count { t -> t.task.isCompleted },
                         totalCount = tasks.size
                     )
+                }
+            }
+            
+            // Observe overdue tasks
+            launch {
+                repository.observeOverdueTasks().collect { overdueTasks ->
+                    _uiState.update {
+                        it.copy(overdueTasks = overdueTasks)
+                    }
                 }
             }
         }
     }
 
-    fun toggleTask(taskId: Long, isCurrentlyCompleted: Boolean) {
+    fun rescheduleOverdueTasks() {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.rescheduleOverdueTasksToToday()
+        }
+    }
+
+    fun toggleTaskCompletion(taskId: String, isCurrentlyCompleted: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.toggleTaskCompletion(taskId, isCurrentlyCompleted)
             updateRankStats(_uiState.value.monthPlanId)
         }
     }
 
-    private fun updateRankStats(monthPlanId: Long) {
-        if (monthPlanId == 0L) return
+    private fun updateRankStats(monthPlanId: String) {
+        if (monthPlanId.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
             val (completed, _) = repository.getCompletionStats(monthPlanId)
             val xp = completed * 10
@@ -169,7 +207,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun rebalanceSchedule() {
         val planId = _uiState.value.monthPlanId
-        if (planId == 0L) return
+        if (planId.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
             val wasRebalanced = repository.rebalanceSchedule(planId)
             if (wasRebalanced) {
@@ -181,5 +219,27 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     fun refresh() {
         _uiState.update { it.copy(isLoading = true) }
         loadDashboard()
+    }
+
+    fun observeSubTasks(parentId: String): kotlinx.coroutines.flow.Flow<List<TaskWithDetails>> {
+        return repository.observeSubTasksWithDetails(parentId)
+    }
+
+    fun addSubTask(parentId: String, inputTitle: String) {
+        viewModelScope.launch {
+            val parentTask = repository.getTasksForDate(repository.todayString()).find { it.id == parentId }
+                ?: return@launch
+            
+            val parsed = com.iu.studytracker.util.TaskParser.parse(inputTitle)
+
+            val newTask = com.iu.studytracker.data.database.entity.Task(
+                title = parsed.cleanTitle,
+                parentTaskId = parentId,
+                monthPlanId = parentTask.monthPlanId,
+                topicId = parentTask.topicId,
+                scheduledDate = parsed.dateString ?: parentTask.scheduledDate
+            )
+            repository.insertTask(newTask)
+        }
     }
 }

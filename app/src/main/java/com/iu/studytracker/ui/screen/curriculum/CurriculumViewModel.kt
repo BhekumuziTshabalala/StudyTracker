@@ -11,9 +11,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.iu.studytracker.data.database.entity.DegreePlan
 
 data class CurriculumUiState(
     val modules: List<CurriculumModule> = emptyList(),
+    val degreePlan: DegreePlan? = null,
     val isImportModalOpen: Boolean = false,
     val isManualEntryModalOpen: Boolean = false,
     val importJsonText: String = "",
@@ -41,6 +43,11 @@ class CurriculumViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             repository.observeAllCurriculumModules().collect { modules ->
                 _uiState.update { it.copy(modules = modules) }
+            }
+        }
+        viewModelScope.launch {
+            repository.observeCurrentDegreePlan().collect { plan ->
+                _uiState.update { it.copy(degreePlan = plan) }
             }
         }
     }
@@ -87,7 +94,7 @@ class CurriculumViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun toggleModuleCompletion(moduleId: Long, isCompleted: Boolean) {
+    fun toggleModuleCompletion(moduleId: String, isCompleted: Boolean) {
         viewModelScope.launch {
             repository.updateCurriculumModuleCompletion(moduleId, isCompleted)
         }
@@ -150,7 +157,7 @@ class CurriculumViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun deleteModule(moduleId: Long) {
+    fun deleteModule(moduleId: String) {
         viewModelScope.launch {
             repository.deleteCurriculumModule(moduleId)
         }

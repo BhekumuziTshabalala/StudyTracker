@@ -27,6 +27,7 @@
 5. [End-to-End Data Flow & Lifecycle](#5-end-to-end-data-flow--lifecycle)
 6. [Project Directory & File Map](#6-project-directory--file-map)
 7. [Testing, Build, and Deployment Guide](#7-testing-build-and-deployment-guide)
+8. [Changelog & Version History](#8-changelog--version-history)
 
 ---
 
@@ -673,3 +674,11 @@ The output APK is exported to `output/StudyTracker-debug.apk` or `app/build/outp
 ```bash
 adb install -r output/StudyTracker-debug.apk
 ```
+
+---
+
+## 8. Changelog & Version History
+
+### Recent Updates
+- **Automated App Screenshots**: Bypassed Espresso API 35 `InputManager` conflicts by writing a daemon-based ADB script that automatically grabs high-quality screenshots (`SCREENSHOTS.md`) and interacts with the UI directly.
+- **UI Update (Progress Screen)**: Resolved an issue in `ModuleProgressSection` where excessively long module names forced the topics completion text ("X of Y topics") to wrap character-by-character vertically. Applied a flexible `weight(1f)` layout constraint to the module name `Text` component to enforce proper wrapping without squishing trailing UI elements.

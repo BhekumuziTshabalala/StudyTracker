@@ -11,22 +11,22 @@ import kotlinx.coroutines.flow.Flow
 interface TopicDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(topic: Topic): Long
+    suspend fun insert(topic: Topic)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(topics: List<Topic>): List<Long>
+    suspend fun insertAll(topics: List<Topic>)
 
     /** Get all topics for a module, ordered by their sequence. */
     @Query("SELECT * FROM topics WHERE moduleId = :moduleId ORDER BY orderIndex ASC")
-    suspend fun getTopicsForModule(moduleId: Long): List<Topic>
+    suspend fun getTopicsForModule(moduleId: String): List<Topic>
 
     /** Observe topics for a module reactively. */
     @Query("SELECT * FROM topics WHERE moduleId = :moduleId ORDER BY orderIndex ASC")
-    fun observeTopicsForModule(moduleId: Long): Flow<List<Topic>>
+    fun observeTopicsForModule(moduleId: String): Flow<List<Topic>>
 
     /** Get a single topic by ID. */
     @Query("SELECT * FROM topics WHERE id = :id")
-    suspend fun getById(id: Long): Topic?
+    suspend fun getById(id: String): Topic?
 
     /** Count total topics across all modules in a month plan. */
     @Query("""
@@ -34,7 +34,7 @@ interface TopicDao {
         INNER JOIN modules m ON t.moduleId = m.id
         WHERE m.monthPlanId = :monthPlanId
     """)
-    suspend fun countTopicsForMonth(monthPlanId: Long): Int
+    suspend fun countTopicsForMonth(monthPlanId: String): Int
 
     /** Get all topics for a month plan (across both modules). */
     @Query("""
@@ -43,9 +43,9 @@ interface TopicDao {
         WHERE m.monthPlanId = :monthPlanId
         ORDER BY m.orderIndex ASC, t.orderIndex ASC
     """)
-    suspend fun getAllTopicsForMonth(monthPlanId: Long): List<Topic>
+    suspend fun getAllTopicsForMonth(monthPlanId: String): List<Topic>
 
     /** Delete all topics for a module (useful for re-entry). */
     @Query("DELETE FROM topics WHERE moduleId = :moduleId")
-    suspend fun deleteTopicsForModule(moduleId: Long)
+    suspend fun deleteTopicsForModule(moduleId: String)
 }

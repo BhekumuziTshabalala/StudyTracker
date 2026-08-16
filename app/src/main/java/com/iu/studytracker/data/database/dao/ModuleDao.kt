@@ -14,33 +14,33 @@ import kotlinx.coroutines.flow.Flow
 interface ModuleDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(module: Module): Long
+    suspend fun insert(module: Module)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(modules: List<Module>): List<Long>
+    suspend fun insertAll(modules: List<Module>)
 
     @Update
     suspend fun update(module: Module)
 
     /** Get the two modules belonging to a month plan. */
     @Query("SELECT * FROM modules WHERE monthPlanId = :monthPlanId ORDER BY orderIndex ASC")
-    suspend fun getModulesForMonth(monthPlanId: Long): List<Module>
+    suspend fun getModulesForMonth(monthPlanId: String): List<Module>
 
     /** Observe the two modules belonging to a month plan reactively. */
     @Query("SELECT * FROM modules WHERE monthPlanId = :monthPlanId ORDER BY orderIndex ASC")
-    fun observeModulesForMonth(monthPlanId: Long): Flow<List<Module>>
+    fun observeModulesForMonth(monthPlanId: String): Flow<List<Module>>
 
     /** Get a single module by ID. */
     @Query("SELECT * FROM modules WHERE id = :id")
-    suspend fun getById(id: Long): Module?
+    suspend fun getById(id: String): Module?
 
     /** Get a module with all its topics (relationship query). */
     @Transaction
     @Query("SELECT * FROM modules WHERE id = :id")
-    suspend fun getWithTopics(id: Long): ModuleWithTopics?
+    suspend fun getWithTopics(id: String): ModuleWithTopics?
 
     /** Get both modules with their topics for a month plan. */
     @Transaction
     @Query("SELECT * FROM modules WHERE monthPlanId = :monthPlanId ORDER BY orderIndex ASC")
-    suspend fun getModulesWithTopicsForMonth(monthPlanId: Long): List<ModuleWithTopics>
+    suspend fun getModulesWithTopicsForMonth(monthPlanId: String): List<ModuleWithTopics>
 }

@@ -1,16 +1,21 @@
 package com.iu.studytracker.data.repository
 
-import com.iu.studytracker.data.database.dao.DailyTaskDao
+import com.iu.studytracker.data.database.dao.TaskDao
+import com.iu.studytracker.data.database.entity.Task
+import com.iu.studytracker.data.model.TaskWithDetails
+import com.iu.studytracker.data.database.entity.TaskStatus
+import com.iu.studytracker.data.database.entity.TaskPriority
 import com.iu.studytracker.data.database.dao.ModuleDao
 import com.iu.studytracker.data.database.dao.MonthPlanDao
 import com.iu.studytracker.data.database.dao.TopicDao
 import com.iu.studytracker.data.database.dao.DegreePlanDao
 import com.iu.studytracker.data.database.dao.CurriculumDao
+import com.iu.studytracker.data.database.dao.ModuleDetailsDao
 import com.iu.studytracker.data.database.entity.CurriculumModule
 import com.iu.studytracker.data.database.entity.CurriculumTopic
-import com.iu.studytracker.data.database.entity.DailyTask
+import com.iu.studytracker.data.database.entity.ModuleTask
+import com.iu.studytracker.data.database.entity.ModuleScheduleEvent
 import com.iu.studytracker.data.database.entity.DegreePlan
-import com.iu.studytracker.data.model.DailyTaskWithDetails
 import com.iu.studytracker.data.database.entity.Module
 import com.iu.studytracker.data.database.entity.MonthPlan
 import com.iu.studytracker.data.database.entity.Topic
@@ -21,6 +26,7 @@ import com.iu.studytracker.data.database.relation.MonthPlanFull
 import com.iu.studytracker.data.database.relation.MonthPlanWithModules
 import com.iu.studytracker.scheduler.TopicScheduler
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -35,10 +41,50 @@ class StudyRepository(
     private val monthPlanDao: MonthPlanDao,
     private val moduleDao: ModuleDao,
     private val topicDao: TopicDao,
-    private val dailyTaskDao: DailyTaskDao,
+    private val taskDao: TaskDao,
     private val degreePlanDao: DegreePlanDao,
-    private val curriculumDao: CurriculumDao
+    private val curriculumDao: CurriculumDao,
+    private val moduleDetailsDao: ModuleDetailsDao,
+    private val taskTemplateDao: com.iu.studytracker.data.database.dao.TaskTemplateDao
 ) {
+
+    // ── Module Details (Tasks & Events) ─────────────────────────
+
+    fun observeTasksForModule(moduleId: String): Flow<List<ModuleTask>> {
+        return moduleDetailsDao.getTasksForModule(moduleId)
+    }
+
+    suspend fun insertModuleTask(task: ModuleTask) {
+        moduleDetailsDao.insertTask(task)
+    }
+
+    suspend fun updateModuleTask(task: ModuleTask) {
+        moduleDetailsDao.updateTask(task)
+    }
+
+    suspend fun deleteModuleTask(task: ModuleTask) {
+        moduleDetailsDao.deleteTask(task)
+    }
+
+    suspend fun updateModuleTaskCompletion(taskId: String, isCompleted: Boolean) {
+        moduleDetailsDao.updateTaskCompletion(taskId, isCompleted)
+    }
+
+    fun observeScheduleEventsForModule(moduleId: String): Flow<List<ModuleScheduleEvent>> {
+        return moduleDetailsDao.getScheduleEventsForModule(moduleId)
+    }
+
+    suspend fun insertScheduleEvent(event: ModuleScheduleEvent) {
+        moduleDetailsDao.insertScheduleEvent(event)
+    }
+
+    suspend fun updateScheduleEvent(event: ModuleScheduleEvent) {
+        moduleDetailsDao.updateScheduleEvent(event)
+    }
+
+    suspend fun deleteScheduleEvent(event: ModuleScheduleEvent) {
+        moduleDetailsDao.deleteScheduleEvent(event)
+    }
 
     // ── Curriculum Management ───────────────────────────────────
 
@@ -84,7 +130,7 @@ class StudyRepository(
         }
     }
 
-    suspend fun updateCurriculumModuleCompletion(moduleId: Long, isCompleted: Boolean) {
+    suspend fun updateCurriculumModuleCompletion(moduleId: String, isCompleted: Boolean) {
         curriculumDao.updateModuleCompletion(moduleId, isCompleted)
     }
 
@@ -100,7 +146,7 @@ class StudyRepository(
         return curriculumDao.getAllCurriculumModulesSync()
     }
 
-    suspend fun deleteCurriculumModule(moduleId: Long) {
+    suspend fun deleteCurriculumModule(moduleId: String) {
         curriculumDao.deleteCurriculumModule(moduleId)
     }
 
@@ -126,7 +172,7 @@ class StudyRepository(
         return monthPlanDao.getByYearAndMonth(year, month)
     }
 
-    suspend fun getMonthPlanById(id: Long): MonthPlan? {
+    suspend fun getMonthPlanById(id: String): MonthPlan? {
         return monthPlanDao.getById(id)
     }
 
@@ -138,108 +184,176 @@ class StudyRepository(
         return monthPlanDao.observeAll()
     }
 
-    suspend fun markSetupComplete(monthPlanId: Long) {
+    suspend fun markSetupComplete(monthPlanId: String) {
         monthPlanDao.markSetupComplete(monthPlanId)
     }
 
-    suspend fun deleteMonthPlan(monthPlanId: Long) {
+    suspend fun deleteMonthPlan(monthPlanId: String) {
         monthPlanDao.deleteById(monthPlanId)
     }
 
     // ── Modules ─────────────────────────────────────────────────
 
-    suspend fun insertModule(module: Module): Long {
-        return moduleDao.insert(module)
+    suspend fun insertModule(module: Module): String {
+        moduleDao.insert(module)
+        return module.id
     }
 
-    suspend fun insertModules(modules: List<Module>): List<Long> {
-        return moduleDao.insertAll(modules)
+    suspend fun insertModules(modules: List<Module>): List<String> {
+        moduleDao.insertAll(modules)
+        return modules.map { it.id }
     }
 
-    suspend fun getModulesForMonth(monthPlanId: Long): List<Module> {
+    suspend fun getModulesForMonth(monthPlanId: String): List<Module> {
         return moduleDao.getModulesForMonth(monthPlanId)
     }
 
-    fun observeModulesForMonth(monthPlanId: Long): Flow<List<Module>> {
+    fun observeModulesForMonth(monthPlanId: String): Flow<List<Module>> {
         return moduleDao.observeModulesForMonth(monthPlanId)
     }
 
-    suspend fun getModulesWithTopics(monthPlanId: Long): List<ModuleWithTopics> {
+    suspend fun getModulesWithTopics(monthPlanId: String): List<ModuleWithTopics> {
         return moduleDao.getModulesWithTopicsForMonth(monthPlanId)
     }
 
     // ── Topics ───────────────────────────────────────────────────
 
-    suspend fun insertTopics(topics: List<Topic>): List<Long> {
-        return topicDao.insertAll(topics)
+    suspend fun insertTopics(topics: List<Topic>): List<String> {
+        topicDao.insertAll(topics)
+        return topics.map { it.id }
     }
 
-    suspend fun getTopicsForModule(moduleId: Long): List<Topic> {
+    suspend fun getTopicsForModule(moduleId: String): List<Topic> {
         return topicDao.getTopicsForModule(moduleId)
     }
 
-    suspend fun getAllTopicsForMonth(monthPlanId: Long): List<Topic> {
+    suspend fun getAllTopicsForMonth(monthPlanId: String): List<Topic> {
         return topicDao.getAllTopicsForMonth(monthPlanId)
     }
 
-    suspend fun countTopicsForMonth(monthPlanId: Long): Int {
+    suspend fun countTopicsForMonth(monthPlanId: String): Int {
         return topicDao.countTopicsForMonth(monthPlanId)
     }
 
-    // ── Daily Tasks ─────────────────────────────────────────────
+    // ── Tasks ─────────────────────────────────────────────
 
-    suspend fun insertDailyTasks(tasks: List<DailyTask>) {
-        dailyTaskDao.insertAll(tasks)
+    suspend fun insertTask(task: Task) {
+        taskDao.insert(task)
     }
 
-    suspend fun getTasksForDate(date: String): List<DailyTask> {
-        return dailyTaskDao.getTasksForDate(date)
+    suspend fun insertTasks(tasks: List<Task>) {
+        taskDao.insertAll(tasks)
     }
 
-    fun observeTasksForDate(date: String): Flow<List<DailyTask>> {
-        return dailyTaskDao.observeTasksForDate(date)
+    suspend fun getTasksForDate(date: String): List<Task> {
+        return taskDao.getTasksForDate(date)
     }
 
-    fun observeTasksForMonth(monthPlanId: Long): Flow<List<DailyTask>> {
-        return dailyTaskDao.observeTasksForMonth(monthPlanId)
+    fun observeTasksForDate(date: String): Flow<List<Task>> {
+        return taskDao.observeTasksForDate(date)
     }
 
-    fun observeTodaysTasks(): Flow<List<DailyTask>> {
-        return dailyTaskDao.observeTasksForDate(todayString())
+    fun observeOverdueTasks(): Flow<List<Task>> {
+        return taskDao.observeOverdueTasks(todayString())
     }
 
-    fun observeTasksWithDetailsForDate(date: String): Flow<List<DailyTaskWithDetails>> {
-        return dailyTaskDao.observeTasksWithDetailsForDate(date)
-    }
-
-    fun observeTodaysTasksWithDetails(): Flow<List<DailyTaskWithDetails>> {
-        return dailyTaskDao.observeTasksWithDetailsForDate(todayString())
-    }
-
-    fun observeAllTasksWithDetailsForMonth(monthPlanId: Long): Flow<List<DailyTaskWithDetails>> {
-        return dailyTaskDao.observeAllTasksWithDetailsForMonth(monthPlanId)
-    }
-
-    suspend fun toggleTaskCompletion(taskId: Long, isCurrentlyCompleted: Boolean) {
-        if (isCurrentlyCompleted) {
-            dailyTaskDao.markIncomplete(taskId)
-        } else {
-            dailyTaskDao.markComplete(taskId)
+    suspend fun rescheduleOverdueTasksToToday() {
+        val overdueTasks = taskDao.getOverdueTasksSync(todayString())
+        val updatedTasks = overdueTasks.map { it.copy(scheduledDate = todayString()) }
+        if (updatedTasks.isNotEmpty()) {
+            taskDao.insertAll(updatedTasks) // insertAll with REPLACE strategy updates them
         }
     }
 
-    suspend fun deleteTasksForMonth(monthPlanId: Long) {
-        dailyTaskDao.deleteTasksForMonth(monthPlanId)
+    // ── Task Templates ──────────────────────────────────────────
+
+    suspend fun insertTaskTemplate(template: com.iu.studytracker.data.database.entity.TaskTemplate) {
+        taskTemplateDao.insert(template)
     }
 
-    suspend fun incrementTimeSpent(taskId: Long, minutes: Int) {
-        dailyTaskDao.incrementTimeSpent(taskId, minutes)
+    suspend fun updateTaskTemplate(template: com.iu.studytracker.data.database.entity.TaskTemplate) {
+        taskTemplateDao.update(template)
     }
 
-    suspend fun rebalanceSchedule(monthPlanId: Long): Boolean {
+    suspend fun deleteTaskTemplate(template: com.iu.studytracker.data.database.entity.TaskTemplate) {
+        taskTemplateDao.delete(template)
+    }
+
+    fun observeAllTaskTemplates(): Flow<List<com.iu.studytracker.data.database.entity.TaskTemplate>> {
+        return taskTemplateDao.observeAll()
+    }
+
+    fun observeTasksForMonth(monthPlanId: String): Flow<List<Task>> {
+        return taskDao.observeTasksForMonth(monthPlanId)
+    }
+
+    fun observeTodaysTasks(): Flow<List<Task>> {
+        return taskDao.observeTasksForDate(todayString())
+    }
+
+    fun observeTasksWithDetailsForDate(date: String): Flow<List<TaskWithDetails>> {
+        return taskDao.observeTasksWithDetailsForDate(date)
+    }
+
+    fun observeTodaysTasksWithDetails(): Flow<List<TaskWithDetails>> {
+        return taskDao.observeTasksWithDetailsForDate(todayString())
+    }
+
+    fun observeAllTasksWithDetailsForMonth(monthPlanId: String): Flow<List<TaskWithDetails>> {
+        return taskDao.observeAllTasksWithDetailsForMonth(monthPlanId)
+    }
+
+    fun observeIncompleteTasksWithDetails(): Flow<List<TaskWithDetails>> {
+        return taskDao.observeIncompleteTasksWithDetails()
+    }
+
+    fun observeSubTasksWithDetails(parentId: String): Flow<List<TaskWithDetails>> {
+        return taskDao.observeSubTasksWithDetails(parentId)
+    }
+
+    suspend fun updateTaskPriority(taskId: String, priority: TaskPriority) {
+        val task = taskDao.getTaskById(taskId)
+        if (task != null) {
+            taskDao.update(task.copy(priority = priority))
+        }
+    }
+
+    suspend fun getTasksWithRecurrenceSync(): List<Task> {
+        return taskDao.getTasksWithRecurrenceSync()
+    }
+
+    suspend fun updateTask(task: Task) {
+        taskDao.update(task)
+    }
+
+    suspend fun incrementTaskMinutes(taskId: String, minutes: Int) {
+        taskDao.incrementTaskMinutes(taskId, minutes)
+    }
+
+    suspend fun toggleTaskCompletion(taskId: String, isCurrentlyCompleted: Boolean) {
+        val task = taskDao.getTaskById(taskId)
+        if (task != null) {
+            val newStatus = if (isCurrentlyCompleted) TaskStatus.TODO else TaskStatus.DONE
+            val completedAt = if (isCurrentlyCompleted) null else System.currentTimeMillis()
+            taskDao.update(task.copy(status = newStatus, completedAt = completedAt))
+        }
+    }
+
+    suspend fun deleteTasksForMonth(monthPlanId: String) {
+        taskDao.deleteTasksForMonth(monthPlanId)
+    }
+
+    suspend fun incrementTimeSpent(taskId: String, minutes: Int) {
+        val task = taskDao.getTaskById(taskId)
+        if (task != null) {
+            taskDao.update(task.copy(actualMinutesSpent = task.actualMinutesSpent + minutes))
+        }
+    }
+
+    suspend fun rebalanceSchedule(monthPlanId: String): Boolean {
         val plan = getMonthPlanById(monthPlanId) ?: return false
         val today = todayString()
-        val incomplete = dailyTaskDao.getIncompleteTasksBeforeDate(monthPlanId, today)
+        val incomplete = taskDao.getIncompleteTasksBeforeDate(monthPlanId, today)
         if (incomplete.isEmpty()) return false
 
         val updated = TopicScheduler.rebalanceSchedule(
@@ -249,15 +363,16 @@ class StudyRepository(
             today = LocalDate.now()
         )
         if (updated.isNotEmpty()) {
-            dailyTaskDao.insertAll(updated)
+            taskDao.insertAll(updated)
         }
         return true
     }
 
     // ── Degree Plan ──────────────────────────────────────────────
 
-    suspend fun insertDegreePlan(plan: DegreePlan): Long {
-        return degreePlanDao.insert(plan)
+    suspend fun insertDegreePlan(plan: DegreePlan): String {
+        degreePlanDao.insert(plan)
+        return plan.id
     }
 
     fun observeCurrentDegreePlan(): Flow<DegreePlan?> {
@@ -270,18 +385,30 @@ class StudyRepository(
 
     // ── Stats ────────────────────────────────────────────────────
 
-    suspend fun getCompletionStats(monthPlanId: Long): Pair<Int, Int> {
-        val total = dailyTaskDao.getTotalTaskCount(monthPlanId)
-        val completed = dailyTaskDao.getCompletedTaskCount(monthPlanId)
+    suspend fun getCompletionStats(monthPlanId: String): Pair<Int, Int> {
+        // We will need to write custom methods in TaskDao or count manually
+        val allTasks = taskDao.observeTasksForMonth(monthPlanId).first()
+        val total = allTasks.size
+        val completed = allTasks.count { it.status == TaskStatus.DONE }
         return Pair(completed, total)
     }
 
     suspend fun getIncompleteCountForToday(): Int {
-        return dailyTaskDao.getIncompleteCountForDate(todayString())
+        val allTasks = taskDao.getTasksForDate(todayString())
+        return allTasks.count { it.status != TaskStatus.DONE }
     }
 
-    suspend fun getScheduledDatesForMonth(monthPlanId: Long): List<String> {
-        return dailyTaskDao.getScheduledDatesForMonth(monthPlanId)
+    suspend fun getScheduledDatesForMonth(monthPlanId: String): List<String> {
+        val allTasks = taskDao.observeTasksForMonth(monthPlanId).first()
+        return allTasks.mapNotNull { it.scheduledDate }.distinct()
+    }
+
+    fun observeTasksCompletedBetween(startTimestamp: Long, endTimestamp: Long): Flow<List<Task>> {
+        return taskDao.observeTasksCompletedBetween(startTimestamp, endTimestamp)
+    }
+
+    fun observeTasksScheduledBetween(startDate: String, endDate: String): Flow<List<Task>> {
+        return taskDao.observeTasksScheduledBetween(startDate, endDate)
     }
 
     // ── Full Plan Assembly ───────────────────────────────────────
@@ -290,14 +417,14 @@ class StudyRepository(
      * Assembles a complete snapshot of a month's study plan.
      * Returns null if the month plan doesn't exist.
      */
-    suspend fun getFullMonthPlan(monthPlanId: Long): MonthPlanFull? {
+    suspend fun getFullMonthPlan(monthPlanId: String): MonthPlanFull? {
         val planWithModules = monthPlanDao.getWithModules(monthPlanId) ?: return null
         val modulesWithTopics = moduleDao.getModulesWithTopicsForMonth(monthPlanId)
-        val tasks = dailyTaskDao.getTasksForDate(todayString()) // just today for dashboard
+        val tasks = taskDao.getTasksForDate(todayString()) // just today for dashboard
         return MonthPlanFull(
             monthPlanWithModules = planWithModules,
             modulesWithTopics = modulesWithTopics,
-            dailyTasks = tasks
+            tasks = tasks
         )
     }
 
@@ -321,12 +448,12 @@ class StudyRepository(
         module1Topics: List<String>,
         module2Name: String,
         module2Topics: List<String>
-    ): Long {
+    ): String {
         // 1. Create or get the month plan
         val existingPlan = monthPlanDao.getByYearAndMonth(year, month)
         val monthPlanId = if (existingPlan != null) {
             // Clear old data for re-setup
-            dailyTaskDao.deleteTasksForMonth(existingPlan.id)
+            taskDao.deleteTasksForMonth(existingPlan.id)
             monthPlanDao.deleteById(existingPlan.id)
             val newPlan = MonthPlan(year = year, month = month)
             monthPlanDao.insert(newPlan)
@@ -336,12 +463,13 @@ class StudyRepository(
         }
 
         // 2. Create the two modules
-        val mod1Id = moduleDao.insert(
-            Module(monthPlanId = monthPlanId, name = module1Name, orderIndex = 0)
-        )
-        val mod2Id = moduleDao.insert(
-            Module(monthPlanId = monthPlanId, name = module2Name, orderIndex = 1)
-        )
+        val mod1 = Module(monthPlanId = monthPlanId, name = module1Name, orderIndex = 0)
+        moduleDao.insert(mod1)
+        val mod1Id = mod1.id
+
+        val mod2 = Module(monthPlanId = monthPlanId, name = module2Name, orderIndex = 1)
+        moduleDao.insert(mod2)
+        val mod2Id = mod2.id
 
         // 3. Create topics for module 1
         val topics1 = module1Topics.mapIndexed { index, title ->
@@ -364,14 +492,14 @@ class StudyRepository(
      * Generates a study schedule for a month plan and saves it to the database.
      *
      * Uses [TopicScheduler] to distribute topics across available days,
-     * then batch-inserts the resulting [DailyTask] records.
+     * then batch-inserts the resulting [Task] records.
      *
      * @param monthPlanId The month plan to generate a schedule for.
      * @param startFrom First eligible day (defaults to today).
      * @return Schedule result with tasks and summary, or null if plan not found.
      */
     suspend fun generateAndSaveSchedule(
-        monthPlanId: Long,
+        monthPlanId: String,
         startFrom: LocalDate = LocalDate.now()
     ): TopicScheduler.ScheduleResult? {
         val plan = monthPlanDao.getById(monthPlanId) ?: return null
@@ -380,7 +508,7 @@ class StudyRepository(
         if (modulesWithTopics.isEmpty()) return null
 
         // Clear any previously generated schedule
-        dailyTaskDao.deleteTasksForMonth(monthPlanId)
+        taskDao.deleteTasksForMonth(monthPlanId)
 
         // Generate the schedule
         val result = TopicScheduler.generateSchedule(
@@ -393,7 +521,7 @@ class StudyRepository(
 
         // Persist tasks to database
         if (result.tasks.isNotEmpty()) {
-            dailyTaskDao.insertAll(result.tasks)
+            taskDao.insertAll(result.tasks)
         }
 
         // Mark setup as complete
@@ -434,14 +562,14 @@ class StudyRepository(
     suspend fun setupMonthWithCurriculumModules(
         year: Int,
         month: Int,
-        moduleIds: List<Long>,
+        moduleIds: List<String>,
         startFrom: LocalDate = LocalDate.now()
-    ): Pair<Long, TopicScheduler.ScheduleResult?> {
+    ): Pair<String, TopicScheduler.ScheduleResult?> {
         // 1. Create or get the month plan
         val existingPlan = monthPlanDao.getByYearAndMonth(year, month)
         val monthPlanId = if (existingPlan != null) {
             // Clear old data for re-setup
-            dailyTaskDao.deleteTasksForMonth(existingPlan.id)
+            taskDao.deleteTasksForMonth(existingPlan.id)
             monthPlanDao.deleteById(existingPlan.id)
             val newPlan = MonthPlan(year = year, month = month)
             monthPlanDao.insert(newPlan)
@@ -455,9 +583,9 @@ class StudyRepository(
         
         // 3. Insert as Active Modules
         curriculumModules.forEachIndexed { index, currModule ->
-            val modId = moduleDao.insert(
-                Module(monthPlanId = monthPlanId, name = currModule.name, orderIndex = index)
-            )
+            val mod = Module(monthPlanId = monthPlanId, name = currModule.name, orderIndex = index)
+            moduleDao.insert(mod)
+            val modId = mod.id
             
             // Fetch topics for this curriculum module
             val currTopics = curriculumDao.getTopicsForModule(currModule.id)
