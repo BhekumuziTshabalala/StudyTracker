@@ -87,6 +87,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun refreshDevices() {
+        viewModelScope.launch {
+            syncManager.startSync()
+        }
+    }
+
     fun setFirebaseSyncEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferences.setFirebaseSyncEnabled(enabled)
@@ -101,5 +107,35 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             userPreferences.setFirebaseConfig(projectId, appId, apiKey)
         }
+    }
+
+    private val _linkStatus = kotlinx.coroutines.flow.MutableStateFlow<LinkStatus?>(null)
+    val linkStatus: StateFlow<LinkStatus?> = _linkStatus
+
+    fun clearLinkStatus() {
+        _linkStatus.value = null
+    }
+
+    fun linkFirebase(projectId: String, appId: String, apiKey: String) {
+        viewModelScope.launch {
+            _linkStatus.value = LinkStatus.Loading
+            saveFirebaseConfig(projectId, appId, apiKey)
+            try {
+                val result = syncManager.attemptLink(projectId, appId, apiKey)
+                if (result.isSuccess) {
+                    _linkStatus.value = LinkStatus.Success
+                } else {
+                    _linkStatus.value = LinkStatus.Error(result.exceptionOrNull()?.message ?: "Unknown error")
+                }
+            } catch(e: Exception) {
+                _linkStatus.value = LinkStatus.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    sealed class LinkStatus {
+        object Loading : LinkStatus()
+        object Success : LinkStatus()
+        data class Error(val message: String) : LinkStatus()
     }
 }

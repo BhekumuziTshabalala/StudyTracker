@@ -97,6 +97,59 @@ class FirebaseSyncManager(
         }
     }
 
+    suspend fun attemptLink(projectId: String, appId: String, apiKey: String): Result<Unit> {
+        val options = FirebaseOptions.Builder()
+            .setProjectId(projectId)
+            .setApplicationId(appId)
+            .setApiKey(apiKey)
+            .build()
+
+        return try {
+            var app = FirebaseApp.getApps(context).firstOrNull { it.name == "StudyTrackerSync" }
+            if (app != null && (app.options.projectId != projectId || app.options.applicationId != appId || app.options.apiKey != apiKey)) {
+                app.delete()
+                app = null
+            }
+            if (app == null) {
+                app = FirebaseApp.initializeApp(context, options, "StudyTrackerSync")
+            }
+            
+            val tempDb = FirebaseFirestore.getInstance(app!!)
+            val deviceId = userPreferences.getOrCreateDeviceId()
+            val deviceData = mapOf(
+                "deviceId" to deviceId,
+                "lastSeen" to System.currentTimeMillis()
+            )
+            
+            try {
+                kotlinx.coroutines.withTimeout(5000L) {
+                    tempDb.collection("devices").document(deviceId)
+                        .set(deviceData, SetOptions.merge())
+                        .await()
+                }
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                throw Exception("Connection timed out. Please ensure your device has internet access and that you have created a Firestore Database in your Firebase Console.")
+            } catch (e: Exception) {
+                if (e.message?.contains("PERMISSION_DENIED") == true || e.message?.contains("Missing or insufficient permissions") == true) {
+                    Log.w(TAG, "Device registration denied by rules, but connection succeeded")
+                } else {
+                    throw e
+                }
+            }
+
+            db = tempDb
+            
+            GlobalScope.launch(Dispatchers.IO) {
+                startSync()
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to link Firebase", e)
+            Result.failure(Exception(e.localizedMessage ?: "Unknown error occurred"))
+        }
+    }
+
     suspend fun startSync() {
         if (db == null) return
         try {
