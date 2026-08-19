@@ -43,15 +43,22 @@ class FocusTimerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
-                val taskId = intent.getStringExtra(EXTRA_TASK_ID) ?: return START_NOT_STICKY
-                val title = intent.getStringExtra(EXTRA_TASK_TITLE) ?: "Focus Time"
-                val minutes = intent.getIntExtra(EXTRA_MINUTES, 25)
-                
-                if (TimerState.currentTaskId.value != taskId) {
-                    TimerState.currentTaskId.value = taskId
-                    TimerState.currentTaskTitle.value = title
-                    TimerState.totalMillis.value = minutes * 60 * 1000L
-                    TimerState.remainingMillis.value = TimerState.totalMillis.value
+                val taskId = intent.getStringExtra(EXTRA_TASK_ID)
+                if (taskId != null) {
+                    val title = intent.getStringExtra(EXTRA_TASK_TITLE) ?: "Focus Time"
+                    val minutes = intent.getIntExtra(EXTRA_MINUTES, 25)
+                    
+                    if (TimerState.currentTaskId.value != taskId) {
+                        TimerState.currentTaskId.value = taskId
+                        TimerState.currentTaskTitle.value = title
+                        TimerState.totalMillis.value = minutes * 60 * 1000L
+                        TimerState.remainingMillis.value = TimerState.totalMillis.value
+                    }
+                } else {
+                    // Resume action: if we don't have a current task, we can't resume
+                    if (TimerState.currentTaskId.value == null) {
+                        return START_NOT_STICKY
+                    }
                 }
                 
                 startTimer()

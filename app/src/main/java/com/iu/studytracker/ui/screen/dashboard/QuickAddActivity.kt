@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.iu.studytracker.data.database.StudyTrackerDatabase
 import com.iu.studytracker.data.repository.StudyRepository
-import com.iu.studytracker.ui.theme.StudyTrackerTheme
+import com.iu.studytracker.ui.theme.DolphinPlannerTheme
 import com.iu.studytracker.util.TaskParser
 import kotlinx.coroutines.launch
 
@@ -25,7 +25,7 @@ class QuickAddActivity : ComponentActivity() {
         val repository = (applicationContext as com.iu.studytracker.StudyTrackerApp).repository
         
         setContent {
-            StudyTrackerTheme {
+            DolphinPlannerTheme {
                 // Transparent background wrapper
                 Box(
                     modifier = Modifier

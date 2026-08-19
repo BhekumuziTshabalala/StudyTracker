@@ -24,7 +24,7 @@ import com.iu.studytracker.ui.screen.dashboard.DashboardScreen
 import com.iu.studytracker.ui.screen.studynow.StudyNowScreen
 import com.iu.studytracker.ui.screen.setup.SetupScreen
 import com.iu.studytracker.ui.screen.curriculum.CurriculumScreen
-import com.iu.studytracker.ui.theme.Purple60
+import com.iu.studytracker.ui.theme.OceanBlue
 
 @Composable
 fun StudyTrackerNavGraph() {
@@ -47,7 +47,7 @@ fun StudyTrackerNavGraph() {
             ) {
                 NavigationRail(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = Purple60,
+                    contentColor = OceanBlue,
                     modifier = Modifier.fillMaxHeight(),
                     header = {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -79,8 +79,8 @@ fun StudyTrackerNavGraph() {
                                 }
                             },
                             colors = NavigationRailItemDefaults.colors(
-                                selectedIconColor = Purple60,
-                                selectedTextColor = Purple60,
+                                selectedIconColor = OceanBlue,
+                                selectedTextColor = OceanBlue,
                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 indicatorColor = MaterialTheme.colorScheme.surfaceVariant
@@ -133,8 +133,8 @@ fun StudyTrackerNavGraph() {
                                         }
                                     },
                                     colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = Purple60,
-                                        selectedTextColor = Purple60,
+                                        selectedIconColor = OceanBlue,
+                                        selectedTextColor = OceanBlue,
                                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                         unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                         indicatorColor = MaterialTheme.colorScheme.surfaceVariant

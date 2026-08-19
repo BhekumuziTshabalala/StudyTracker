@@ -35,7 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.iu.studytracker.ui.theme.Module1Color
 import com.iu.studytracker.ui.theme.Module2Color
-import com.iu.studytracker.ui.theme.Purple80
+import com.iu.studytracker.ui.theme.OceanBlueLight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

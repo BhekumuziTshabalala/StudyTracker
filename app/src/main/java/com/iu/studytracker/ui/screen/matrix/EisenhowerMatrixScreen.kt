@@ -38,7 +38,11 @@ fun EisenhowerMatrixScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Eisenhower Matrix") }
+                title = { Text("Eisenhower Matrix") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
         }
     ) { padding ->

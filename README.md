@@ -1,8 +1,8 @@
-# 📚 IU Study Tracker
+# 🐬 Dolphin Planner (formerly IU Study Tracker)
 
 An intelligent, modern Android study planner and progress tracking application built with **Jetpack Compose**, **Material 3**, **Room SQLite**, and **Kotlin Coroutines**. 
 
-Designed specifically for university students managing dual-module monthly curriculums (such as IU International University of Applied Sciences), IU Study Tracker automates syllabus scheduling using cognitive interleaving, tracks daily study streaks, visualizes completion metrics, and delivers automated study reminders.
+Designed specifically for university students managing dual-module monthly curriculums (such as IU International University of Applied Sciences), Dolphin Planner automates syllabus scheduling using cognitive interleaving, tracks daily study streaks, visualizes completion metrics, and delivers automated study reminders in a calming **Ocean Theme**.
 
 ---
 
@@ -28,13 +28,16 @@ Designed specifically for university students managing dual-module monthly curri
 - **Curriculum Management**: Modules are automatically separated into Active (grouped by semester) and Completed sections for easier tracking.
 - **ECTS Credit Tracking**: Monitors degree progress against the 180 ECTS total (5 credits per completed module).
 
-### ⏳ Pomodoro Focus Timer
-- **Integrated Timer**: Start a 25-minute Pomodoro timer directly from your daily tasks.
+### ⏳ Advanced Focus Timer
+- **Integrated Timer**: Start a Pomodoro-style timer directly from your daily tasks.
+- **Persistent Foreground Service**: The timer reliably runs in the background and system tray, even if the app is minimized or closed.
+- **Customizable Themes**: Choose your favorite visual style (Circular, Minimalist Text, or fluid Wave Fill) to stay focused.
 - **Time Tracking**: Automatically logs actual minutes spent studying per task to the database.
 
 ### ⏰ Automated Background Reminders
 - **WorkManager Integration**: Periodic background worker (`StudyReminderWorker`) that notifies students about pending daily study goals.
 - **Android 13+ Notification Support**: Full runtime permission handling (`POST_NOTIFICATIONS`) and notification channels.
+- **Themed Adaptive Icons**: Fully supports Android 13+ monochrome themed launcher icons.
 
 ### 🔒 100% Offline & Private
 - **Local SQLite Database**: All study data, plans, and topics are stored locally on your device via Android Room with zero external cloud dependencies or data tracking.
@@ -43,13 +46,13 @@ Designed specifically for university students managing dual-module monthly curri
 
 ## 🛠️ Tech Stack & Architecture
 
-IU Study Tracker follows modern Android development best practices and **Clean Architecture** principles with unidirectional data flow (UDF).
+Dolphin Planner follows modern Android development best practices and **Clean Architecture** principles with unidirectional data flow (UDF).
 
 | Layer / Component | Technology | Description |
 | :--- | :--- | :--- |
 | **Language** | [Kotlin 2.3.0](https://kotlinlang.org/) | Modern, expressive, null-safe language targeting JVM 17 |
 | **UI Toolkit** | [Jetpack Compose](https://developer.android.com/jetpack/compose) (BOM 2026.04.01) | Declarative UI framework |
-| **Design System** | [Material 3 (M3)](https://m3.material.io/) | Dynamic theming, custom color schemes, typography, and Material icons |
+| **Design System** | [Material 3 (M3)](https://m3.material.io/) | Dynamic theming, Dolphin Ocean color schemes, typography, and Material icons |
 | **Navigation** | [Navigation Compose](https://developer.android.com/jetpack/compose/navigation) 2.9.2 | Type-safe single-activity navigation graph |
 | **State & Lifecycle** | [Lifecycle ViewModel Compose](https://developer.android.com/jetpack/androidx/releases/lifecycle) 2.9.1 | UI State management via `StateFlow` and `asStateFlow()` |
 | **Local Database** | [Room Database](https://developer.android.com/training/data-storage/room) 2.8.4 + [KSP](https://github.com/google/ksp) 2.3.1 | SQLite ORM with reactive Kotlin `Flow` queries & foreign key cascading |
@@ -66,10 +69,11 @@ StudyTracker/
 │   ├── build.gradle.kts             # App-level dependencies & plugins
 │   └── src/
 │       ├── main/
-│       │   ├── AndroidManifest.xml  # App declaration & POST_NOTIFICATIONS permission
+│       │   ├── AndroidManifest.xml  # App declaration, Foreground Services & POST_NOTIFICATIONS
 │       │   └── java/com/iu/studytracker/
 │       │       ├── StudyTrackerApp.kt        # Application class, Room init & WorkManager setup
 │       │       ├── MainActivity.kt           # Single Activity host with Edge-to-Edge Compose
+│       │       ├── service/                  # Foreground Service for persistent Focus Timer
 │       │       ├── data/
 │       │       │   ├── database/
 │       │       │   │   ├── StudyTrackerDatabase.kt # Room database instance
@@ -86,13 +90,14 @@ StudyTracker/
 │       │           ├── navigation/           # NavGraph and Screen definitions
 │       │           ├── screen/
 │       │           │   ├── setup/            # Initial monthly setup flow (Modules & Topics)
-│       │           │   ├── dashboard/        # Today's tasks, active streak, summary cards, Focus Timer
+│       │           │   ├── dashboard/        # Today's tasks, active streak, summary cards
 │       │           │   ├── calendar/         # Month calendar & day task inspector
-│       │           │   ├── progress/         # Completion charts, module breakdown & velocity
+│       │           │   ├── analytics/        # Progress charts, focus time stats & velocity
 │       │           │   ├── curriculum/       # Active/Completed module organization
+│       │           │   ├── focus/            # Multi-theme Pomodoro Focus Timer
 │       │           │   ├── roadmap/          # Macro-level ECTS progress & timeline
 │       │           │   └── settings/         # Global settings configuration
-│       │           └── theme/                # Material 3 colors, typography, shapes & theme
+│       │           └── theme/                # Dolphin Ocean colors, typography, shapes & theme
 │       └── test/java/com/iu/studytracker/
 │           └── scheduler/
 │               └── TopicSchedulerTest.kt     # Comprehensive unit tests for scheduling algorithm
@@ -154,8 +159,8 @@ erDiagram
 
 The `TopicScheduler` engine converts raw module topics into a structured daily plan:
 
-1. **Topic Interleaving**: Takes topics from Module A ($A_1, A_2, \dots$) and Module B ($B_1, B_2, \dots$) and merges them in alternating order:
-   $$\text{Sequence} = [A_1, B_1, A_2, B_2, A_3, B_3, \dots]$$
+1. **Topic Interleaving**: Takes topics from Module A (`A_1, A_2...`) and Module B (`B_1, B_2...`) and merges them in alternating order:
+   `Sequence = [A_1, B_1, A_2, B_2, A_3, B_3...]`
 2. **Date Windowing**: Filters active calendar days from the selected start date (or today) through the last day of the target month.
 3. **Equitable Distribution**:
    - **Sparse Mode (Topics < Days)**: Evenly distributes topics with scheduled rest days to prevent cramming.
@@ -243,7 +248,8 @@ Run the automated test suite to verify scheduling algorithms, database operation
 
 ## 🔐 Permissions & Privacy
 
-- `android.permission.POST_NOTIFICATIONS`: Requested at runtime on Android 13 (API 33+) to dispatch scheduled daily study reminders.
+- `android.permission.POST_NOTIFICATIONS`: Requested at runtime on Android 13 (API 33+) to dispatch scheduled daily study reminders and host the Focus Timer foreground service.
+- `android.permission.FOREGROUND_SERVICE`: Used to keep the Focus Timer running reliably in the background so you never lose your progress.
 - **Zero Cloud Tracking**: All user inputs, subject names, and completion logs remain exclusively on the user's local device in encrypted/sandboxed SQLite storage.
 
 ---
@@ -251,8 +257,10 @@ Run the automated test suite to verify scheduling algorithms, database operation
 ## 📝 Changelog
 
 ### Recent Updates
-- **Automated App Screenshots**: Bypassed Espresso API 35 `InputManager` conflicts by writing a daemon-based ADB script that automatically grabs high-quality screenshots (`SCREENSHOTS.md`) and interacts with the UI directly.
-- **UI/UX (Progress Screen)**: Fixed a layout overflow issue where long module titles would compress the progress text ("X of Y topics"), causing it to render vertically instead of inline. Applied flexible weighting to ensure long titles wrap properly to the next line.
+- **Dolphin Planner Rebrand**: Renamed from Study Tracker to Dolphin Planner. Refactored UI strictly adhering to Material 3 padding guidelines and replaced old palettes with a calming **Dolphin Ocean** color scheme.
+- **Focus Timer Overhaul**: Elevated the timer to run as a Foreground Service, ensuring it never dies when minimized. Added multi-theme support (Circular, Minimalist Text, Wave Fill) and fixed edge cases during pause/resume cycles.
+- **Analytics Stability**: Refactored Room SQLite database Flow emissions using Kotlin `combine()`, resolving nested subscription bottlenecks and unlocking instant stat synchronization on the Analytics screen.
+- **Themed App Icons**: Added full support for monochrome, dynamically tinted Android 13+ app icons perfectly centered in adaptive boundaries.
 
 ---
 

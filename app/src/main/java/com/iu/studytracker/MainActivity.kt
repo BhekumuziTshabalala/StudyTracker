@@ -11,13 +11,27 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.iu.studytracker.ui.navigation.StudyTrackerNavGraph
 import com.iu.studytracker.ui.theme.DarkBackground
-import com.iu.studytracker.ui.theme.StudyTrackerTheme
+import com.iu.studytracker.ui.theme.DolphinPlannerTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+                ) { _ -> }
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    if (androidx.core.content.ContextCompat.checkSelfPermission(
+                            context, android.Manifest.permission.POST_NOTIFICATIONS
+                        ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+            }
+            
             val app = application as StudyTrackerApp
             val themeMode by app.userPreferences.themeMode.collectAsState(initial = com.iu.studytracker.data.repository.ThemeMode.SYSTEM)
             
@@ -27,7 +41,7 @@ class MainActivity : ComponentActivity() {
                 com.iu.studytracker.data.repository.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
             }
 
-            StudyTrackerTheme(darkTheme = isDarkTheme) {
+            DolphinPlannerTheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.background

@@ -41,7 +41,7 @@ fun CalendarScreen(
 
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Purple80)
+            CircularProgressIndicator(color = OceanBlueLight)
         }
         return
     }
@@ -278,10 +278,10 @@ private fun CalendarGridContent(
                                 .aspectRatio(1f)
                                 .padding(2.dp)
                                 .clip(CircleShape)
-                                .background(if (isSelected) Purple60.copy(alpha = 0.2f) else Color.Transparent)
+                                .background(if (isSelected) OceanBlue.copy(alpha = 0.2f) else Color.Transparent)
                                 .border(
                                     width = if (isToday) 2.dp else 0.dp,
-                                    color = if (isToday) Purple60 else Color.Transparent,
+                                    color = if (isToday) OceanBlue else Color.Transparent,
                                     shape = CircleShape
                                 )
                                 .clickable { onSelectDay(day) },
@@ -290,7 +290,7 @@ private fun CalendarGridContent(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = day.toString(),
-                                    color = if (isToday || isSelected) Purple80 else MaterialTheme.colorScheme.onBackground,
+                                    color = if (isToday || isSelected) OceanBlueLight else MaterialTheme.colorScheme.onBackground,
                                     fontSize = 16.sp
                                 )
                                 if (tasks.isNotEmpty()) {

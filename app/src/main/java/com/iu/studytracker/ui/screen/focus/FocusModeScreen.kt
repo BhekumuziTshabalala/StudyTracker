@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.iu.studytracker.service.FocusTimerService
@@ -37,6 +38,20 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
     val isRunning by TimerState.isRunning.collectAsState()
     val currentTaskTitle by TimerState.currentTaskTitle.collectAsState()
     val currentTaskId by TimerState.currentTaskId.collectAsState()
+    
+    // Request POST_NOTIFICATIONS permission for Android 13+
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { _ -> }
+        LaunchedEffect(Unit) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.POST_NOTIFICATIONS
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -69,46 +84,120 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.onBackground
             )
             
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            var selectedStyle by remember { mutableStateOf(TimerStyle.CIRCULAR) }
+            
+            // Style Picker
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TimerStyle.values().forEach { style ->
+                    FilterChip(
+                        selected = selectedStyle == style,
+                        onClick = { selectedStyle = style },
+                        label = { Text(style.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Timer Circle
+            // Timer Visuals
             val progress = if (totalMillis > 0) remainingMillis.toFloat() / totalMillis else 0f
             val animatedProgress by animateFloatAsState(
                 targetValue = progress,
                 animationSpec = tween(1000, easing = LinearEasing),
                 label = "timerProgress"
             )
+            val minutes = (remainingMillis / 1000) / 60
+            val seconds = (remainingMillis / 1000) % 60
+            val timeString = String.format("%02d:%02d", minutes, seconds)
 
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(300.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
             ) {
-                val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
-                Canvas(modifier = Modifier.size(250.dp)) {
-                    drawCircle(
-                        color = surfaceVariantColor,
-                        style = Stroke(width = 24.dp.toPx())
-                    )
-                    drawArc(
-                        color = Module1Color,
-                        startAngle = -90f,
-                        sweepAngle = 360f * animatedProgress,
-                        useCenter = false,
-                        style = Stroke(width = 24.dp.toPx(), cap = StrokeCap.Round)
-                    )
+                when (selectedStyle) {
+                    TimerStyle.CIRCULAR -> {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
+                            val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
+                            Canvas(modifier = Modifier.size(250.dp)) {
+                                drawCircle(
+                                    color = surfaceVariantColor,
+                                    style = Stroke(width = 24.dp.toPx())
+                                )
+                                drawArc(
+                                    color = Module1Color,
+                                    startAngle = -90f,
+                                    sweepAngle = 360f * animatedProgress,
+                                    useCenter = false,
+                                    style = Stroke(width = 24.dp.toPx(), cap = StrokeCap.Round)
+                                )
+                            }
+                            Text(
+                                text = timeString,
+                                fontSize = 64.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
+                    TimerStyle.MINIMALIST -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = timeString,
+                                fontSize = 100.sp,
+                                fontWeight = FontWeight.Light,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            LinearProgressIndicator(
+                                progress = { animatedProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth(0.6f)
+                                    .height(8.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                                color = Module1Color,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            )
+                        }
+                    }
+                    TimerStyle.FILL -> {
+                        Box(
+                            modifier = Modifier
+                                .size(250.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(animatedProgress)
+                                    .background(Module1Color)
+                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = timeString,
+                                    fontSize = 64.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
                 }
-
-                val minutes = (remainingMillis / 1000) / 60
-                val seconds = (remainingMillis / 1000) % 60
-                Text(
-                    text = String.format("%02d:%02d", minutes, seconds),
-                    fontSize = 64.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
             }
 
-            Spacer(modifier = Modifier.height(64.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Row(
                 horizontalArrangement = Arrangement.Center,
@@ -165,4 +254,8 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
             }
         }
     }
+}
+
+enum class TimerStyle {
+    CIRCULAR, MINIMALIST, FILL
 }

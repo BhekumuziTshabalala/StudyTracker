@@ -153,7 +153,7 @@ fun SetupScreen(
                                 Text(
                                     text = "Semester $semester",
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = Purple80,
+                                    color = OceanBlueLight,
                                     modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                                 )
                             }
@@ -186,8 +186,8 @@ fun SetupScreen(
                                     .height(56.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Purple60,
-                                    disabledContainerColor = Purple60.copy(alpha = 0.3f)
+                                    containerColor = OceanBlue,
+                                    disabledContainerColor = OceanBlue.copy(alpha = 0.3f)
                                 )
                             ) {
                                 if (state.isGenerating) {
@@ -258,7 +258,7 @@ fun SetupScreen(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
-                                                StatItem("Topics", "${summary.totalTopics}", Purple80)
+                                                StatItem("Topics", "${summary.totalTopics}", OceanBlueLight)
                                                 StatItem("Study Days", "${summary.totalDays - summary.restDays}", Cyan80)
                                                 StatItem("Rest Days", "${summary.restDays}", StatusGreen)
                                             }
@@ -308,7 +308,7 @@ fun ModuleSelectionItem(
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) Purple40.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant
-    val borderColor = if (isSelected) Purple60 else Color.Transparent
+    val borderColor = if (isSelected) OceanBlue else Color.Transparent
 
     Card(
         modifier = Modifier
@@ -326,7 +326,7 @@ fun ModuleSelectionItem(
                 Text(
                     text = module.code,
                     style = MaterialTheme.typography.labelMedium,
-                    color = Purple80
+                    color = OceanBlueLight
                 )
                 Text(
                     text = module.name,
@@ -335,7 +335,7 @@ fun ModuleSelectionItem(
                 )
             }
             if (isSelected) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Selected", tint = Purple60)
+                Icon(Icons.Default.CheckCircle, contentDescription = "Selected", tint = OceanBlue)
             }
         }
     }

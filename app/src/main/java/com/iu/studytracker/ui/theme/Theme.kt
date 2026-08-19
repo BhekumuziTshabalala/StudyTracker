@@ -8,13 +8,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.isSystemInDarkTheme
 
 private val DarkColorScheme = darkColorScheme(
-    primary = ElectricBlue,
+    primary = OceanBlue,
     onPrimary = Color.White,
-    primaryContainer = ElectricBlueDark,
-    onPrimaryContainer = ElectricBlueLight,
-    secondary = MintGreen,
+    primaryContainer = OceanBlueDark,
+    onPrimaryContainer = OceanBlueLight,
+    secondary = SeafoamGreen,
     onSecondary = Color.Black,
-    secondaryContainer = MintGreenLight,
+    secondaryContainer = SeafoamGreenLight,
     onSecondaryContainer = Color.Black,
     background = DarkBackground,
     onBackground = TextPrimary,
@@ -28,13 +28,13 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = ElectricBlue,
+    primary = OceanBlue,
     onPrimary = Color.White,
-    primaryContainer = ElectricBlueLight,
-    onPrimaryContainer = ElectricBlueDark,
-    secondary = MintGreen,
+    primaryContainer = OceanBlueLight,
+    onPrimaryContainer = OceanBlueDark,
+    secondary = SeafoamGreen,
     onSecondary = Color.White,
-    secondaryContainer = MintGreenLight,
+    secondaryContainer = SeafoamGreenLight,
     onSecondaryContainer = Color.Black,
     background = LightBackground,
     onBackground = LightTextPrimary,
@@ -48,14 +48,14 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun StudyTrackerTheme(
+fun DolphinPlannerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = StudyTypography, // Assuming StudyTypography exists
+        typography = DolphinTypography, // Assuming DolphinTypography exists
         content = content
     )
 }

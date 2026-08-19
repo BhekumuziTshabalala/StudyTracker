@@ -50,7 +50,7 @@ fun DashboardScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        text = if (uiState.programmeName.isNotBlank()) uiState.programmeName else "Study Tracker",
+                        text = if (uiState.programmeName.isNotBlank()) uiState.programmeName else "Dolphin Planner",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     ) 
@@ -331,7 +331,7 @@ fun ActiveDashboardState(
                                             .fillMaxWidth()
                                             .height(10.dp)
                                             .clip(RoundedCornerShape(5.dp)),
-                                        color = Purple80,
+                                        color = OceanBlueLight,
                                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                                     )
                                 }
@@ -659,7 +659,7 @@ fun ActiveDashboardState(
                                 .fillMaxWidth()
                                 .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
-                            color = Purple80,
+                            color = OceanBlueLight,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     }
@@ -924,6 +924,7 @@ fun TaskCard(
 ) {
     val moduleColor = if (task.moduleOrderIndex == 0) Module1Color else Module2Color
     val context = LocalContext.current
+
     var expanded by remember { mutableStateOf(false) }
     var showTimeDialog by remember { mutableStateOf(false) }
     val subtasks by remember(task.task.id) { observeSubTasks(task.task.id) }.collectAsState(initial = emptyList())

@@ -158,7 +158,7 @@ fun CurriculumScreen(
                             Text(
                                 text = "Semester $semester",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Purple80
+                                color = OceanBlueLight
                             )
                             Text(
                                 text = "$completedCredits / $totalCredits ECTS",
