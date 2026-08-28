@@ -37,12 +37,7 @@ fun CurriculumScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Curriculum Management") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.Close, "Close")
-                    }
-                },
+                title = { Text("Curriculum Management", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) },
                 actions = {
                     IconButton(onClick = { viewModel.setImportModalOpen(true) }) {
                         Icon(Icons.Default.IntegrationInstructions, "Import JSON")
@@ -100,9 +95,8 @@ fun CurriculumScreen(
                 val completedModules = state.modules.filter { it.isCompleted }
                 
                 item {
-                    val requiredCredits = state.degreePlan?.totalCreditsRequired ?: 180
-                    val totalCreditsEarned = completedModules.size * 5
-                    val progress = if (requiredCredits > 0) totalCreditsEarned.toFloat() / requiredCredits else 0f
+                    val totalModules = state.modules.size
+                    val progress = if (totalModules > 0) completedModules.size.toFloat() / totalModules else 0f
                     
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -130,12 +124,12 @@ fun CurriculumScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "$totalCreditsEarned Earned",
+                                    text = "${completedModules.size} Completed",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "$requiredCredits Required",
+                                    text = "$totalModules Total",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -240,15 +234,25 @@ fun CurriculumModuleItem(
     onToggleCompletion: (Boolean) -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         onClick = onClick,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(if (module.isCompleted) StatusGreen else OceanBlue)
+            )
+            Row(
+                modifier = Modifier.padding(16.dp).weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             Checkbox(
                 checked = module.isCompleted,
                 onCheckedChange = onToggleCompletion,
@@ -283,6 +287,7 @@ fun CurriculumModuleItem(
         }
     }
 }
+}
 
 @Composable
 fun ImportJsonModal(
@@ -314,7 +319,8 @@ fun ImportJsonModal(
                     onValueChange = onJsonChange,
                     label = { Text("Paste JSON here") },
                     modifier = Modifier.fillMaxWidth().height(200.dp),
-                    maxLines = 10
+                    maxLines = 10,
+                    shape = RoundedCornerShape(12.dp)
                 )
                 if (error != null) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -357,29 +363,33 @@ fun ManualEntryModal(
                         value = semester,
                         onValueChange = { onFieldsChange(it, code, name, assessment) },
                         label = { Text("Sem") },
-                        modifier = Modifier.weight(0.3f)
+                        modifier = Modifier.weight(0.3f),
+                        shape = RoundedCornerShape(12.dp)
                     )
                     OutlinedTextField(
                         value = code,
                         onValueChange = { onFieldsChange(semester, it, name, assessment) },
                         label = { Text("Code") },
-                        modifier = Modifier.weight(0.7f)
+                        modifier = Modifier.weight(0.7f),
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
                 OutlinedTextField(
                     value = name,
                     onValueChange = { onFieldsChange(semester, code, it, assessment) },
                     label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = assessment,
                     onValueChange = { onFieldsChange(semester, code, name, it) },
                     label = { Text("Assessment") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
                 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DarkBorder)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                 
                 Text("Topics (${topics.size})", style = MaterialTheme.typography.labelMedium)
                 topics.forEachIndexed { index, topic ->
@@ -402,7 +412,8 @@ fun ManualEntryModal(
                         value = newTopic,
                         onValueChange = onNewTopicChange,
                         label = { Text("New Topic") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
                     )
                     IconButton(onClick = onAddTopic) {
                         Icon(Icons.Default.Add, "Add")

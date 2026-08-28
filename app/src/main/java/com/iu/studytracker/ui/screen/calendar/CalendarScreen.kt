@@ -39,24 +39,10 @@ fun CalendarScreen(
         viewModel.refresh()
     }
 
-    if (uiState.isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = OceanBlueLight)
-        }
-        return
-    }
-
-    if (!uiState.hasSetup) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Please complete the setup first.", color = MaterialTheme.colorScheme.onBackground)
-        }
-        return
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Calendar") },
+                title = { Text("Calendar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) },
                 actions = {
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -71,12 +57,21 @@ fun CalendarScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = OceanBlueLight)
+            }
+        } else if (!uiState.hasSetup) {
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                Text("Please complete the setup first.", color = MaterialTheme.colorScheme.onBackground)
+            }
+        } else {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
             val isTablet = maxWidth >= 720.dp
 
             if (isTablet) {
@@ -248,6 +243,7 @@ fun CalendarScreen(
         }
     }
 }
+}
 
 @Composable
 private fun CalendarGridContent(
@@ -266,7 +262,7 @@ private fun CalendarGridContent(
                         Spacer(modifier = Modifier.weight(1f).aspectRatio(1f))
                     } else {
                         val day = currentDay
-                        val dateStr = String.format("%04d-%02d-%02d", uiState.year, uiState.month, day)
+                        val dateStr = String.format(java.util.Locale.US, "%04d-%02d-%02d", uiState.year, uiState.month, day)
                         val isSelected = uiState.selectedDate == dateStr
                         val isToday = uiState.todayString == dateStr
                         val tasks = uiState.tasksByDate[dateStr] ?: emptyList()

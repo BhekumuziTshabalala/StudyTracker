@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.iu.studytracker.ui.theme.Module1Color
 import com.iu.studytracker.ui.theme.Module2Color
 import com.iu.studytracker.ui.theme.OceanBlueLight
@@ -70,7 +69,7 @@ fun StudyNowScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Study Now") },
+                    title = { Text("Study Now", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) },
                     actions = {
                         IconButton(onClick = { isFullscreen = true }) {
                             Icon(Icons.Default.Fullscreen, contentDescription = "Full Screen")
@@ -225,7 +224,7 @@ fun StyleSelector(
             Text(
                 text = "Select Study Mode",
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 16.sp,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
@@ -256,7 +255,7 @@ fun StyleSelector(
                         Text(
                             text = style.title,
                             color = if (isSelected) Module1Color else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
@@ -274,7 +273,7 @@ fun TimerDisplay(
 ) {
     val minutes = uiState.timeRemainingSeconds / 60
     val seconds = uiState.timeRemainingSeconds % 60
-    val timeString = String.format("%02d:%02d", minutes, seconds)
+    val timeString = String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
 
     val progress = when (uiState.timerState) {
         TimerState.FOCUSING, TimerState.PAUSED, TimerState.IDLE -> {
@@ -332,7 +331,7 @@ fun TimerDisplay(
             Text(
                 text = stateText,
                 color = ringColor,
-                fontSize = 18.sp,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
             )
@@ -340,7 +339,7 @@ fun TimerDisplay(
             Text(
                 text = timeString,
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 64.sp,
+                style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.ExtraBold
             )
         }

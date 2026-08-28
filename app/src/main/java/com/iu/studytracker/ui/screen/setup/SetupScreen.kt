@@ -266,7 +266,7 @@ fun SetupScreen(
                                             Spacer(modifier = Modifier.height(8.dp))
 
                                             Text(
-                                                text = "Avg ${String.format("%.1f", summary.avgTopicsPerStudyDay)} topics per study day",
+                                                text = "Avg ${String.format(java.util.Locale.US, "%.1f", summary.avgTopicsPerStudyDay)} topics per study day",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )

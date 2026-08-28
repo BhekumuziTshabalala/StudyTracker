@@ -100,7 +100,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun selectDate(day: Int) {
-        val dateStr = String.format("%04d-%02d-%02d", _uiState.value.year, _uiState.value.month, day)
+        val dateStr = String.format(java.util.Locale.US, "%04d-%02d-%02d", _uiState.value.year, _uiState.value.month, day)
         val tasks = _uiState.value.tasksByDate[dateStr] ?: emptyList()
         _uiState.update {
             it.copy(

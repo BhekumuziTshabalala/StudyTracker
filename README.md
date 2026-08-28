@@ -39,8 +39,17 @@ Designed specifically for university students managing dual-module monthly curri
 - **Android 13+ Notification Support**: Full runtime permission handling (`POST_NOTIFICATIONS`) and notification channels.
 - **Themed Adaptive Icons**: Fully supports Android 13+ monochrome themed launcher icons.
 
-### 🔒 100% Offline & Private
-- **Local SQLite Database**: All study data, plans, and topics are stored locally on your device via Android Room with zero external cloud dependencies or data tracking.
+### 🔒 100% Offline & Private (with Optional Sync)
+- **Local SQLite Database**: By default, all study data, plans, and topics are stored locally on your device via Android Room with zero external cloud dependencies.
+- **Firebase Sync**: Users can optionally connect their own Firebase project to sync data across devices. See our [Firebase Sync Guide](https://github.com/BhekumuziTshabalala/StudyTracker) (available on the official website) for more details.
+
+---
+
+## 🌐 Official Website & Resources
+
+Check out the [Dolphin Planner Official Website](https://github.com/BhekumuziTshabalala/StudyTracker) (link placeholder) for:
+- **Curriculum Catalog**: Browse and easily copy JSON payloads for university curriculums (e.g., BSc Computer Science) directly into your app.
+- **Firebase Sync Guide**: A step-by-step tutorial on how to configure cross-device synchronization using your own personal Firebase database.
 
 ---
 
@@ -250,7 +259,7 @@ Run the automated test suite to verify scheduling algorithms, database operation
 
 - `android.permission.POST_NOTIFICATIONS`: Requested at runtime on Android 13 (API 33+) to dispatch scheduled daily study reminders and host the Focus Timer foreground service.
 - `android.permission.FOREGROUND_SERVICE`: Used to keep the Focus Timer running reliably in the background so you never lose your progress.
-- **Zero Cloud Tracking**: All user inputs, subject names, and completion logs remain exclusively on the user's local device in encrypted/sandboxed SQLite storage.
+- **Privacy First**: By default, all user inputs, subject names, and completion logs remain exclusively on the user's local device in encrypted/sandboxed SQLite storage. If Firebase Sync is manually configured by the user, data is synced securely to their private Firebase instance.
 
 ---
 

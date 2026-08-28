@@ -7,7 +7,6 @@ import android.os.Build
 import com.iu.studytracker.data.database.StudyTrackerDatabase
 import com.iu.studytracker.data.repository.StudyRepository
 import com.iu.studytracker.worker.StudyReminderWorker
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 class StudyTrackerApp : Application() {
@@ -37,6 +36,7 @@ class StudyTrackerApp : Application() {
     val syncManager: com.iu.studytracker.data.repository.FirebaseSyncManager by lazy {
         com.iu.studytracker.data.repository.FirebaseSyncManager(this, database, userPreferences)
     }
+    private val applicationScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
@@ -45,7 +45,7 @@ class StudyTrackerApp : Application() {
         com.iu.studytracker.worker.TaskRecurrenceWorker.schedule(this)
 
         // Initialize Firebase Sync
-        kotlinx.coroutines.GlobalScope.launch {
+        applicationScope.launch {
             syncManager.initialize()
         }
     }

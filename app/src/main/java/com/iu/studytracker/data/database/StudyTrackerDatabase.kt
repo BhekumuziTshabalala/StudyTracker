@@ -61,7 +61,8 @@ abstract class StudyTrackerDatabase : RoomDatabase() {
                     StudyTrackerDatabase::class.java,
                     "study_tracker.db"
                 )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_1_4, MIGRATION_4_8)
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     .also { INSTANCE = it }
             }

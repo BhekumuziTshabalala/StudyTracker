@@ -151,7 +151,7 @@ class FocusTimerService : Service() {
 
         val minutes = (TimerState.remainingMillis.value / 1000) / 60
         val seconds = (TimerState.remainingMillis.value / 1000) % 60
-        val timeString = String.format("%02d:%02d", minutes, seconds)
+        val timeString = String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
 
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle(TimerState.currentTaskTitle.value ?: "Focus Timer")

@@ -11,7 +11,6 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.callbackFlow
 
 class FirebaseSyncManager(
@@ -24,6 +23,7 @@ class FirebaseSyncManager(
     }
 
     private var db: FirebaseFirestore? = null
+    private val syncScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
 
     suspend fun initialize() {
         val isEnabled = userPreferences.isFirebaseSyncEnabled.first()
@@ -52,7 +52,7 @@ class FirebaseSyncManager(
             if (app == null) {
                 app = FirebaseApp.initializeApp(context, options, "StudyTrackerSync")
             }
-            db = FirebaseFirestore.getInstance(app!!)
+            db = FirebaseFirestore.getInstance(app)
             Log.d(TAG, "Firebase initialized successfully")
             // Register device
             registerDevice()
@@ -63,14 +63,14 @@ class FirebaseSyncManager(
                 "modules", "topics", "tasks", "module_tasks", "module_schedule_events", "task_templates"
             ) {
                 override fun onInvalidated(tables: Set<String>) {
-                    GlobalScope.launch(Dispatchers.IO) {
+                    syncScope.launch {
                         startSync()
                     }
                 }
             })
 
             // Run initial sync
-            GlobalScope.launch(Dispatchers.IO) {
+            syncScope.launch {
                 startSync()
             }
 
@@ -114,7 +114,7 @@ class FirebaseSyncManager(
                 app = FirebaseApp.initializeApp(context, options, "StudyTrackerSync")
             }
             
-            val tempDb = FirebaseFirestore.getInstance(app!!)
+            val tempDb = FirebaseFirestore.getInstance(app)
             val deviceId = userPreferences.getOrCreateDeviceId()
             val deviceData = mapOf(
                 "deviceId" to deviceId,
@@ -139,7 +139,7 @@ class FirebaseSyncManager(
 
             db = tempDb
             
-            GlobalScope.launch(Dispatchers.IO) {
+            syncScope.launch {
                 startSync()
             }
             

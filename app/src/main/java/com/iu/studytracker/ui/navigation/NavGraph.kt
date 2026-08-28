@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -50,9 +51,10 @@ fun StudyTrackerNavGraph() {
                     contentColor = OceanBlue,
                     modifier = Modifier.fillMaxHeight(),
                     header = {
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 ) {
+                    Spacer(modifier = Modifier.weight(1f))
                     Screen.bottomNavItems.forEach { screen ->
                         val selected = currentDestination?.hierarchy?.any {
                             it.route == screen.route
@@ -67,7 +69,7 @@ fun StudyTrackerNavGraph() {
                                     )
                                 }
                             },
-                            // label removed for icon-only design
+                            label = { Text(screen.title, style = MaterialTheme.typography.labelSmall) },
                             selected = selected,
                             onClick = {
                                 navController.navigate(screen.route) {
@@ -79,15 +81,16 @@ fun StudyTrackerNavGraph() {
                                 }
                             },
                             colors = NavigationRailItemDefaults.colors(
-                                selectedIconColor = OceanBlue,
-                                selectedTextColor = OceanBlue,
+                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                             ),
-                            modifier = Modifier.padding(vertical = 4.dp)
+                            modifier = Modifier.padding(vertical = 2.dp)
                         )
                     }
+                    Spacer(modifier = Modifier.weight(1f))
                 }
 
                 Box(
@@ -105,7 +108,7 @@ fun StudyTrackerNavGraph() {
                     if (showNav) {
                         NavigationBar(
                             containerColor = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 0.dp
+                            tonalElevation = 4.dp
                         ) {
                             Screen.bottomNavItems.forEach { screen ->
                                 val selected = currentDestination?.hierarchy?.any {
@@ -121,7 +124,8 @@ fun StudyTrackerNavGraph() {
                                             )
                                         }
                                     },
-                                    // label removed for icon-only design
+                                    label = null,
+                                    alwaysShowLabel = false,
                                     selected = selected,
                                     onClick = {
                                         navController.navigate(screen.route) {
@@ -133,11 +137,9 @@ fun StudyTrackerNavGraph() {
                                         }
                                     },
                                     colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = OceanBlue,
-                                        selectedTextColor = OceanBlue,
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                                     )
                                 )
                             }
@@ -167,31 +169,31 @@ private fun AppNavHost(
         startDestination = Screen.Dashboard.route,
         modifier = modifier,
         enterTransition = {
-            fadeIn(animationSpec = tween(400)) + slideIntoContainer(
+            fadeIn(animationSpec = tween(350)) + slideIntoContainer(
                 AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(400),
-                initialOffset = { it / 8 }
+                animationSpec = tween(350),
+                initialOffset = { it / 10 }
             )
         },
         exitTransition = {
-            fadeOut(animationSpec = tween(400)) + slideOutOfContainer(
+            fadeOut(animationSpec = tween(350)) + slideOutOfContainer(
                 AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(400),
-                targetOffset = { -it / 8 }
+                animationSpec = tween(350),
+                targetOffset = { -it / 10 }
             )
         },
         popEnterTransition = {
-            fadeIn(animationSpec = tween(400)) + slideIntoContainer(
+            fadeIn(animationSpec = tween(350)) + slideIntoContainer(
                 AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(400),
-                initialOffset = { -it / 8 }
+                animationSpec = tween(350),
+                initialOffset = { -it / 10 }
             )
         },
         popExitTransition = {
-            fadeOut(animationSpec = tween(400)) + slideOutOfContainer(
+            fadeOut(animationSpec = tween(350)) + slideOutOfContainer(
                 AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(400),
-                targetOffset = { it / 8 }
+                animationSpec = tween(350),
+                targetOffset = { it / 10 }
             )
         }
     ) {
@@ -302,4 +304,3 @@ private fun AppNavHost(
         }
     }
 }
-

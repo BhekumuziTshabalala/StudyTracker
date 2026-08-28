@@ -43,37 +43,47 @@ fun ModuleDetailsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(module?.code ?: "Module Details") },
+                title = { Text(module?.code ?: "Module Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
         },
         floatingActionButton = {
-            // A simple FAB that opens a dialog to choose what to add
             var showFabMenu by remember { mutableStateOf(false) }
             Column(horizontalAlignment = Alignment.End) {
-                if (showFabMenu) {
-                    ExtendedFloatingActionButton(
-                        onClick = {
-                            showFabMenu = false
-                            viewModel.setTaskModalOpen(true)
-                        },
-                        icon = { Icon(Icons.Default.Add, null) },
-                        text = { Text("Add Task") },
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    ExtendedFloatingActionButton(
-                        onClick = {
-                            showFabMenu = false
-                            viewModel.setEventModalOpen(true)
-                        },
-                        icon = { Icon(Icons.Default.Add, null) },
-                        text = { Text("Add Schedule Event") },
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showFabMenu,
+                    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(expandFrom = Alignment.Bottom),
+                    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(shrinkTowards = Alignment.Bottom)
+                ) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        ExtendedFloatingActionButton(
+                            onClick = {
+                                showFabMenu = false
+                                viewModel.setTaskModalOpen(true)
+                            },
+                            icon = { Icon(Icons.Default.Add, null) },
+                            text = { Text("Add Task") },
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        ExtendedFloatingActionButton(
+                            onClick = {
+                                showFabMenu = false
+                                viewModel.setEventModalOpen(true)
+                            },
+                            icon = { Icon(Icons.Default.Add, null) },
+                            text = { Text("Add Schedule Event") },
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
                 }
                 FloatingActionButton(onClick = { showFabMenu = !showFabMenu }) {
                     Icon(Icons.Default.Add, "Add Item")
@@ -171,18 +181,28 @@ fun ModuleDetailsScreen(
 @Composable
 fun TaskItem(task: ModuleTask, onToggle: (Boolean) -> Unit, onDelete: () -> Unit) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(
-                checked = task.isCompleted,
-                onCheckedChange = onToggle
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(com.iu.studytracker.ui.theme.Module1Color)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Row(
+                modifier = Modifier.padding(16.dp).weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = task.isCompleted,
+                    onCheckedChange = onToggle
+                )
+                Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = task.title, style = MaterialTheme.typography.titleMedium)
                 if (task.description.isNotBlank()) {
@@ -200,6 +220,7 @@ fun TaskItem(task: ModuleTask, onToggle: (Boolean) -> Unit, onDelete: () -> Unit
         }
     }
 }
+}
 
 @Composable
 fun EventItem(event: ModuleScheduleEvent, onDelete: () -> Unit) {
@@ -207,26 +228,37 @@ fun EventItem(event: ModuleScheduleEvent, onDelete: () -> Unit) {
     val dateStr = Instant.ofEpochMilli(event.date).atZone(ZoneId.systemDefault()).toLocalDate().format(dateFormatter)
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = event.title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = "$dateStr • ${event.eventType.name}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (event.durationMinutes != null) {
-                    Text(text = "Duration: ${event.durationMinutes} min", style = MaterialTheme.typography.labelSmall)
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(com.iu.studytracker.ui.theme.Module2Color)
+            )
+            Row(
+                modifier = Modifier.padding(16.dp).weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = event.title, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "$dateStr • ${event.eventType.name}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (event.durationMinutes != null) {
+                        Text(text = "Duration: ${event.durationMinutes} min", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, "Delete")
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, "Delete")
+                }
             }
         }
     }
@@ -260,14 +292,19 @@ fun AddTaskDialog(
                 )
                 // Simplified type selection for brevity
                 Text("Type", style = MaterialTheme.typography.labelMedium)
-                Row {
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(modifier = Modifier.fillMaxWidth()) {
                     TaskType.values().forEach { t ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 8.dp)) {
                             RadioButton(
                                 selected = type == t,
                                 onClick = { type = t }
                             )
-                            Text(t.name.lowercase().capitalize())
+                            Text(
+                                t.name.lowercase().replaceFirstChar { 
+                                    if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() 
+                                }
+                            )
                         }
                     }
                 }
@@ -313,7 +350,11 @@ fun AddEventDialog(
                                 selected = type == t,
                                 onClick = { type = t }
                             )
-                            Text(t.name.lowercase().capitalize())
+                                Text(
+                                    t.name.lowercase().replaceFirstChar { 
+                                        if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() 
+                                    }
+                                )
                         }
                     }
                 }
