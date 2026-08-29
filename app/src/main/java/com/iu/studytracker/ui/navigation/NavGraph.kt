@@ -33,8 +33,9 @@ fun StudyTrackerNavGraph() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // Hide navigation bar/rail on Setup screen
-    val showNav = currentDestination?.route != Screen.Setup.route
+    // Hide navigation bar/rail on Setup and ManualSchedule screens
+    val showNav = currentDestination?.route != Screen.Setup.route && 
+                  currentDestination?.route?.startsWith("manual_schedule") != true
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isTablet = maxWidth >= 720.dp
@@ -230,6 +231,25 @@ private fun AppNavHost(
             }
         ) {
             SetupScreen(
+                onSetupComplete = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) { inclusive = true }
+                    }
+                },
+                onNavigateToManualSchedule = { moduleIds ->
+                    navController.navigate(Screen.ManualSchedule.createRoute(moduleIds))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.ManualSchedule.route,
+            arguments = listOf(navArgument("moduleIds") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val moduleIdsString = backStackEntry.arguments?.getString("moduleIds") ?: ""
+            val moduleIds = moduleIdsString.split(",").filter { it.isNotBlank() }
+            com.iu.studytracker.ui.screen.schedule.ManualScheduleScreen(
+                moduleIds = moduleIds,
                 onSetupComplete = {
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Dashboard.route) { inclusive = true }

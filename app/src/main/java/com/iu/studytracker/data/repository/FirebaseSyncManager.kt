@@ -25,6 +25,12 @@ class FirebaseSyncManager(
     private var db: FirebaseFirestore? = null
     private val syncScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
 
+    private val _isSyncing = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val isSyncing: kotlinx.coroutines.flow.StateFlow<Boolean> = _isSyncing
+
+    private val _lastSyncResult = kotlinx.coroutines.flow.MutableStateFlow<Result<Unit>?>(null)
+    val lastSyncResult: kotlinx.coroutines.flow.StateFlow<Result<Unit>?> = _lastSyncResult
+
     suspend fun initialize() {
         val isEnabled = userPreferences.isFirebaseSyncEnabled.first()
         if (!isEnabled) {
@@ -150,6 +156,21 @@ class FirebaseSyncManager(
         }
     }
 
+    suspend fun triggerManualSync() {
+        if (_isSyncing.value) return
+        syncScope.launch {
+            _isSyncing.value = true
+            try {
+                startSync()
+                _lastSyncResult.value = Result.success(Unit)
+            } catch (e: Exception) {
+                _lastSyncResult.value = Result.failure(e)
+            } finally {
+                _isSyncing.value = false
+            }
+        }
+    }
+
     suspend fun startSync() {
         if (db == null) return
         try {
@@ -166,6 +187,7 @@ class FirebaseSyncManager(
             Log.d(TAG, "Sync completed successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Sync failed", e)
+            throw e
         }
     }
 

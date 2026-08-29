@@ -74,6 +74,14 @@ class StudyRepository(
         return moduleDetailsDao.getScheduleEventsForModule(moduleId)
     }
 
+    fun observeTaskCountForModule(moduleId: String): Flow<Int> {
+        return moduleDetailsDao.observeTaskCountForModule(moduleId)
+    }
+
+    fun observeCompletedTaskCountForModule(moduleId: String): Flow<Int> {
+        return moduleDetailsDao.observeCompletedTaskCountForModule(moduleId)
+    }
+
     suspend fun insertScheduleEvent(event: ModuleScheduleEvent) {
         moduleDetailsDao.insertScheduleEvent(event)
     }
@@ -134,6 +142,14 @@ class StudyRepository(
         curriculumDao.updateModuleCompletion(moduleId, isCompleted)
     }
 
+    suspend fun updateExamResult(moduleId: String, passed: Boolean?, grade: String?) {
+        curriculumDao.updateExamResult(moduleId, passed, grade)
+    }
+
+    fun observeModuleById(moduleId: String): Flow<CurriculumModule?> {
+        return curriculumDao.observeModuleById(moduleId)
+    }
+
     suspend fun insertCurriculumModuleManually(module: CurriculumModule, topics: List<CurriculumTopic>) {
         curriculumDao.insertModuleWithTopics(module, topics)
     }
@@ -148,6 +164,18 @@ class StudyRepository(
 
     suspend fun deleteCurriculumModule(moduleId: String) {
         curriculumDao.deleteCurriculumModule(moduleId)
+    }
+
+    suspend fun updateCurriculumTopicScheduledDay(topicId: String, dayOfWeek: Int?) {
+        curriculumDao.updateTopicScheduledDay(topicId, dayOfWeek)
+    }
+
+    fun observeCurriculumTopicsForModules(moduleIds: List<String>): Flow<List<CurriculumTopic>> {
+        return curriculumDao.observeTopicsForModules(moduleIds)
+    }
+
+    fun observeCurriculumTopicsForDay(dayOfWeek: Int): Flow<List<CurriculumTopic>> {
+        return curriculumDao.observeTopicsForDay(dayOfWeek)
     }
 
     // ── Date formatting ─────────────────────────────────────────
@@ -409,6 +437,15 @@ class StudyRepository(
 
     fun observeTasksScheduledBetween(startDate: String, endDate: String): Flow<List<Task>> {
         return taskDao.observeTasksScheduledBetween(startDate, endDate)
+    }
+
+    fun observeTotalFocusTime(): Flow<Int> {
+        return taskDao.observeTotalFocusTime()
+            .let { flow -> 
+                kotlinx.coroutines.flow.flow {
+                    flow.collect { value -> emit(value ?: 0) }
+                }
+            }
     }
 
     // ── Full Plan Assembly ───────────────────────────────────────

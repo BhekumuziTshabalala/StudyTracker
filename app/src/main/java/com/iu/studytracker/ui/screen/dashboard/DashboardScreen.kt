@@ -6,8 +6,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +57,21 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
+                    val rotation by animateFloatAsState(
+                        targetValue = if (uiState.isSyncing) 360f else 0f,
+                        animationSpec = if (uiState.isSyncing) androidx.compose.animation.core.infiniteRepeatable(
+                            animation = androidx.compose.animation.core.tween(1000, easing = androidx.compose.animation.core.LinearEasing)
+                        ) else androidx.compose.animation.core.tween(0),
+                        label = "syncRotation"
+                    )
+                    IconButton(onClick = { viewModel.triggerManualSync() }) {
+                        Icon(
+                            Icons.Default.Sync, 
+                            contentDescription = "Sync",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.rotate(rotation)
+                        )
+                    }
                     IconButton(onClick = onNavigateToTemplates) {
                         Icon(Icons.Default.ContentCopy, contentDescription = "Templates",
                             tint = MaterialTheme.colorScheme.onBackground)
@@ -253,6 +269,7 @@ fun ActiveDashboardState(
                     modifier = Modifier
                         .weight(0.60f)
                         .fillMaxHeight()
+                        .verticalScroll(rememberScrollState())
                 ) {
                     DashboardTabRow(tabs = tabs, selectedTabIndex = selectedTabIndex, onTabSelected = { selectedTabIndex = it })
                     Spacer(modifier = Modifier.height(16.dp))
@@ -277,6 +294,7 @@ fun ActiveDashboardState(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
+                    .verticalScroll(rememberScrollState())
             ) {
                 // Hero Header
                 Box(
@@ -616,7 +634,7 @@ fun DashboardTaskList(
         Spacer(modifier = Modifier.height(4.dp))
     }
 
-    if (uiState.totalCount == 0 && uiState.isSetupComplete && uiState.overdueTasks.isEmpty()) {
+    if (uiState.totalCount == 0 && uiState.manualTopics.isEmpty() && uiState.isSetupComplete && uiState.overdueTasks.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -628,14 +646,13 @@ fun DashboardTaskList(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
-        LazyColumn(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(horizontal = hPad),
-            contentPadding = PaddingValues(bottom = if (uiState.isSetupComplete) 100.dp else 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            itemsIndexed(uiState.tasks, key = { _, task -> task.task.id }) { _, task ->
+            uiState.tasks.forEach { task ->
                 TaskCard(
                     task = task,
                     todayDateString = uiState.todayDateString,
@@ -646,29 +663,65 @@ fun DashboardTaskList(
                     onNavigateToFocusMode = onNavigateToFocusMode
                 )
             }
+            
+            uiState.manualTopics.forEach { topic ->
+                ManualTopicCard(topic = topic)
+            }
+            Spacer(modifier = Modifier.height(if (uiState.isSetupComplete) 100.dp else 16.dp))
+        }
+    }
+}
+
+@Composable
+fun ManualTopicCard(topic: com.iu.studytracker.data.database.entity.CurriculumTopic) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.School,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = topic.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Scheduled for today",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
 
 @Composable
 fun RoadmapTimeline(uiState: DashboardUiState) {
-    LazyColumn(
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        contentPadding = PaddingValues(bottom = 80.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
     ) {
         if (uiState.semesterProgress.isNotEmpty()) {
-            item {
-                Text(
-                    text = "Semester Progress",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-            items(uiState.semesterProgress.size) { index ->
-                val sem = uiState.semesterProgress[index]
+            Text(
+                text = "Semester Progress",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            uiState.semesterProgress.forEach { sem ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -714,21 +767,18 @@ fun RoadmapTimeline(uiState: DashboardUiState) {
                     }
                 }
             }
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "Timeline",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Timeline",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
         }
 
-        items(uiState.monthPlans.size) { index ->
-            val monthPlan = uiState.monthPlans[index]
+        uiState.monthPlans.forEach { monthPlan ->
             val monthName = java.time.Month.of(monthPlan.month)
                 .getDisplayName(TextStyle.FULL, androidx.compose.ui.platform.LocalConfiguration.current.locales.get(0))
 
@@ -761,28 +811,28 @@ fun RoadmapTimeline(uiState: DashboardUiState) {
         }
 
         if (uiState.targetGraduation.isNotBlank()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Module1Color.copy(alpha = 0.1f))
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Flag, contentDescription = null,
-                        tint = Module1Color, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text("Graduation Goal", style = MaterialTheme.typography.labelMedium,
-                            color = Module1Color)
-                        Text(uiState.targetGraduation, style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onBackground)
-                    }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Module1Color.copy(alpha = 0.1f))
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Flag, contentDescription = null,
+                    tint = Module1Color, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text("Graduation Goal", style = MaterialTheme.typography.labelMedium,
+                        color = Module1Color)
+                    Text(uiState.targetGraduation, style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onBackground)
                 }
             }
         }
+        
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 

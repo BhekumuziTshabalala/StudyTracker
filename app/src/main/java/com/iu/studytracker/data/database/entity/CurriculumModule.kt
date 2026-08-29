@@ -19,6 +19,8 @@ data class CurriculumModule(
     val name: String,
     val assessment: String,
     val isCompleted: Boolean = false,
+    val examPassed: Boolean? = null,
+    val finalGrade: String? = null,
     
     val updatedAt: Long = System.currentTimeMillis()
 )

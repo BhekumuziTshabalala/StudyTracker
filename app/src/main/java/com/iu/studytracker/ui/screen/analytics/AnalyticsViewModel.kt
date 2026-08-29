@@ -18,6 +18,7 @@ data class AnalyticsUiState(
     val isLoading: Boolean = true,
     val focusTimePerDay: List<Pair<String, Int>> = emptyList(),
     val totalFocusTimeThisWeek: Int = 0,
+    val overallFocusTime: Int = 0,
     val tasksCompletedThisWeek: Int = 0,
     val tasksScheduledThisWeek: Int = 0,
     val completionRate: Float = 0f,
@@ -48,8 +49,9 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
 
             kotlinx.coroutines.flow.combine(
                 repository.observeTasksScheduledBetween(startDateStr, endDateStr),
-                repository.observeTasksCompletedBetween(startTimestamp, endTimestamp)
-            ) { scheduled, completed ->
+                repository.observeTasksCompletedBetween(startTimestamp, endTimestamp),
+                repository.observeTotalFocusTime()
+            ) { scheduled, completed, overallFocus ->
                 val scheduledCount = scheduled.size
                 val completedCount = completed.size
                 val rate = if (scheduledCount > 0) completedCount.toFloat() / scheduledCount else 0f
@@ -69,6 +71,7 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
                     isLoading = false,
                     focusTimePerDay = focusTimeByDay,
                     totalFocusTimeThisWeek = totalFocusTime,
+                    overallFocusTime = overallFocus,
                     tasksScheduledThisWeek = scheduledCount,
                     tasksCompletedThisWeek = completedCount,
                     completionRate = rate,

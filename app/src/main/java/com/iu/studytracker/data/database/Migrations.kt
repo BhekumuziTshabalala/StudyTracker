@@ -75,3 +75,16 @@ val MIGRATION_4_8 = object : Migration(4, 8) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `task_templates` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `defaultPriority` TEXT NOT NULL, `defaultModuleId` TEXT, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
     }
 }
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `curriculum_modules` ADD COLUMN `examPassed` INTEGER")
+        db.execSQL("ALTER TABLE `curriculum_modules` ADD COLUMN `finalGrade` TEXT")
+    }
+}
+
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `curriculum_topics` ADD COLUMN `scheduledDay` INTEGER DEFAULT NULL")
+    }
+}

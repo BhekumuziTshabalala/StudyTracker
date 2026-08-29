@@ -36,7 +36,7 @@ import com.iu.studytracker.data.database.entity.TaskTemplate
         ModuleScheduleEvent::class,
         TaskTemplate::class
     ],
-    version = 8,
+    version = 10,
     exportSchema = false
 )
 abstract class StudyTrackerDatabase : RoomDatabase() {
@@ -61,7 +61,7 @@ abstract class StudyTrackerDatabase : RoomDatabase() {
                     StudyTrackerDatabase::class.java,
                     "study_tracker.db"
                 )
-                    .addMigrations(MIGRATION_1_4, MIGRATION_4_8)
+                    .addMigrations(MIGRATION_1_4, MIGRATION_4_8, MIGRATION_8_9, MIGRATION_9_10)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     .also { INSTANCE = it }

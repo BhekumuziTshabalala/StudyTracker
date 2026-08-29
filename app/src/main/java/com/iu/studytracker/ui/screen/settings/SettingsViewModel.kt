@@ -138,4 +138,38 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         object Success : LinkStatus()
         data class Error(val message: String) : LinkStatus()
     }
+
+    val reminderEnabled = userPreferences.reminderEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = true
+    )
+    val reminderHour = userPreferences.reminderHour.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 8
+    )
+    val reminderMinute = userPreferences.reminderMinute.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 0
+    )
+    val gradingSystem = userPreferences.gradingSystem.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = "GERMAN"
+    )
+
+    fun setReminderTime(enabled: Boolean, hour: Int, minute: Int) {
+        viewModelScope.launch {
+            userPreferences.setReminderTime(enabled, hour, minute)
+            com.iu.studytracker.worker.ReminderScheduler.schedule(getApplication(), hour, minute, enabled)
+        }
+    }
+
+    fun setGradingSystem(system: String) {
+        viewModelScope.launch {
+            userPreferences.setGradingSystem(system)
+        }
+    }
 }

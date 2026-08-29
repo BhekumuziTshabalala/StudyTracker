@@ -15,6 +15,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.iu.studytracker.MainActivity
 import com.iu.studytracker.StudyTrackerApp
+import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
 /**
@@ -35,9 +36,28 @@ class StudyReminderWorker(
         val incompleteCount = repository.getIncompleteCountForToday()
 
         if (incompleteCount > 0) {
+            // Find active module progress
+            val activeModules = repository.getAllCurriculumModulesSync().filter { !it.isCompleted }
+            val moduleProgressList = mutableListOf<String>()
+            
+            for (module in activeModules) {
+                val totalTasks = repository.observeTaskCountForModule(module.id).first()
+                val completedTasks = repository.observeCompletedTaskCountForModule(module.id).first()
+                val remaining = totalTasks - completedTasks
+                if (remaining > 0) {
+                    moduleProgressList.add("${module.name}: $remaining tasks left")
+                }
+            }
+
+            val moduleText = if (moduleProgressList.isNotEmpty()) {
+                "\n" + moduleProgressList.joinToString("\n")
+            } else {
+                ""
+            }
+
             sendNotification(
                 title = "📚 Study Time!",
-                message = "You have $incompleteCount topic${if (incompleteCount > 1) "s" else ""} to study today. Let's go!"
+                message = "You have $incompleteCount topic${if (incompleteCount > 1) "s" else ""} to study today.$moduleText"
             )
         } else {
             // All done or rest day
@@ -65,6 +85,7 @@ class StudyReminderWorker(
             .setSmallIcon(android.R.drawable.ic_menu_my_calendar)
             .setContentTitle(title)
             .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

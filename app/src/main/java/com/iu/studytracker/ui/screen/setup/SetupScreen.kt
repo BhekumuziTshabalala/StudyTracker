@@ -30,6 +30,7 @@ import com.iu.studytracker.ui.theme.*
 @Composable
 fun SetupScreen(
     onSetupComplete: () -> Unit,
+    onNavigateToManualSchedule: (List<String>) -> Unit,
     viewModel: SetupViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -179,7 +180,7 @@ fun SetupScreen(
                     ) {
                         if (!state.isComplete) {
                             Button(
-                                onClick = viewModel::generateSchedule,
+                                onClick = { onNavigateToManualSchedule(state.selectedModuleIds.toList()) },
                                 enabled = viewModel.canGenerate(),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -190,27 +191,17 @@ fun SetupScreen(
                                     disabledContainerColor = OceanBlue.copy(alpha = 0.3f)
                                 )
                             ) {
-                                if (state.isGenerating) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text("Generating...")
-                                } else {
-                                    Icon(
-                                        Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        "Generate Schedule (${state.selectedModuleIds.size})",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
+                                Icon(
+                                    Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Plan My Week (${state.selectedModuleIds.size})",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                         }
 

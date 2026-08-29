@@ -4,6 +4,19 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+fun getGitVersionName(): String {
+    return try {
+        val process = ProcessBuilder("git", "describe", "--tags", "--abbrev=0")
+            .redirectErrorStream(true)
+            .start()
+        val tag = process.inputStream.bufferedReader().readText().trim()
+        process.waitFor()
+        if (tag.isEmpty() || tag.contains("fatal")) "2.2.0" else tag.removePrefix("v")
+    } catch (e: Exception) {
+        "2.2.0"
+    }
+}
+
 android {
     namespace = "com.iu.studytracker"
     compileSdk = 35
@@ -13,7 +26,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = getGitVersionName()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -87,6 +100,13 @@ dependencies {
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-firestore")
+
+    // QR Code
+    implementation("com.google.zxing:core:3.5.3")
+
+    // Glance Widget
+    implementation("androidx.glance:glance-appwidget:1.1.0")
+    implementation("androidx.glance:glance-material3:1.1.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

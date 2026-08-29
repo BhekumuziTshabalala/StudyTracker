@@ -74,21 +74,38 @@ class FocusTimerService : Service() {
     }
 
     private fun startTimer() {
-        if (TimerState.isRunning.value) return
+        if (timerJob?.isActive == true) return
         
         TimerState.isRunning.value = true
-        startForeground(NOTIFICATION_ID, buildNotification())
+        
+        // If we have a saved session end, use it; otherwise compute it.
+        val prefs = getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE)
+        val savedSessionEnd = prefs.getLong(TimerState.KEY_SESSION_END, 0L)
+        val sessionEndEpochMillis = if (savedSessionEnd > 0) savedSessionEnd else (System.currentTimeMillis() + TimerState.remainingMillis.value)
+        
+        // Save to SharedPrefs
+        prefs.edit()
+            .putLong(TimerState.KEY_SESSION_END, sessionEndEpochMillis)
+            .putString(TimerState.KEY_TASK_ID, TimerState.currentTaskId.value)
+            .putString(TimerState.KEY_TASK_TITLE, TimerState.currentTaskTitle.value)
+            .putLong(TimerState.KEY_TOTAL_MILLIS, TimerState.totalMillis.value)
+            .putLong(TimerState.KEY_REMAINING_MILLIS, TimerState.remainingMillis.value)
+            .putBoolean(TimerState.KEY_IS_RUNNING, true)
+            .apply()
+            
+        startForeground(NOTIFICATION_ID, buildNotification(sessionEndEpochMillis))
         
         timerJob = serviceScope.launch {
-            while (TimerState.remainingMillis.value > 0 && TimerState.isRunning.value) {
+            while (TimerState.isRunning.value) {
+                val now = System.currentTimeMillis()
+                val remaining = max(0L, sessionEndEpochMillis - now)
+                TimerState.remainingMillis.value = remaining
+                
+                if (remaining == 0L) {
+                    onTimerFinished()
+                    break
+                }
                 delay(1000)
-                TimerState.remainingMillis.value = max(0, TimerState.remainingMillis.value - 1000)
-                updateNotification()
-            }
-            
-            if (TimerState.remainingMillis.value == 0L) {
-                // Timer finished!
-                onTimerFinished()
             }
         }
     }
@@ -96,11 +113,35 @@ class FocusTimerService : Service() {
     private fun pauseTimer() {
         TimerState.isRunning.value = false
         timerJob?.cancel()
+        
+        // Update SharedPrefs
+        val prefs = getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE)
+        prefs.edit()
+            .putLong(TimerState.KEY_SESSION_END, 0L)
+            .putLong(TimerState.KEY_REMAINING_MILLIS, TimerState.remainingMillis.value)
+            .putBoolean(TimerState.KEY_IS_RUNNING, false)
+            .apply()
+            
         updateNotification()
     }
 
     private fun stopTimer() {
         pauseTimer()
+        
+        val taskId = TimerState.currentTaskId.value
+        val millisSpent = TimerState.totalMillis.value - TimerState.remainingMillis.value
+        val minutesSpent = (millisSpent / (60 * 1000L)).toInt()
+        
+        if (taskId != null && minutesSpent > 0) {
+            serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val repository = (applicationContext as com.iu.studytracker.StudyTrackerApp).repository
+                repository.incrementTaskMinutes(taskId, minutesSpent)
+            }
+        }
+        
+        // Clear SharedPrefs
+        getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE).edit().clear().apply()
+        
         TimerState.reset()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -110,6 +151,9 @@ class FocusTimerService : Service() {
         TimerState.isRunning.value = false
         val taskId = TimerState.currentTaskId.value
         val minutesSpent = (TimerState.totalMillis.value / (60 * 1000L)).toInt()
+        
+        // Clear SharedPrefs
+        getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE).edit().clear().apply()
         
         // Update database
         if (taskId != null) {
@@ -125,7 +169,7 @@ class FocusTimerService : Service() {
         stopSelf()
     }
 
-    private fun buildNotification(): Notification {
+    private fun buildNotification(sessionEndMillis: Long? = null): Notification {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
             // Can pass extras to navigate straight to the focus screen
@@ -149,25 +193,39 @@ class FocusTimerService : Service() {
         val stopPending = PendingIntent.getService(this, 3, stopIntent, PendingIntent.FLAG_IMMUTABLE)
         val stopAction = NotificationCompat.Action(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPending)
 
-        val minutes = (TimerState.remainingMillis.value / 1000) / 60
-        val seconds = (TimerState.remainingMillis.value / 1000) % 60
-        val timeString = String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
-
-        return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle(TimerState.currentTaskTitle.value ?: "Focus Timer")
-            .setContentText(timeString)
             .setSmallIcon(R.drawable.ic_launcher_foreground) // Use default for now
             .setContentIntent(pendingIntent)
             .addAction(playPauseAction)
             .addAction(stopAction)
             .setOngoing(TimerState.isRunning.value)
             .setOnlyAlertOnce(true)
-            .build()
+
+        if (sessionEndMillis != null && TimerState.isRunning.value) {
+            // Android's Chronometer expects SystemClock.elapsedRealtime() as the base, not currentTimeMillis.
+            val remainingMillis = kotlin.math.max(0L, sessionEndMillis - System.currentTimeMillis())
+            val chronometerBase = android.os.SystemClock.elapsedRealtime() + remainingMillis
+            
+            builder.setWhen(chronometerBase)
+                .setShowWhen(true)
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
+                .setContentText("Focus session in progress")
+        } else {
+            val minutes = (TimerState.remainingMillis.value / 1000) / 60
+            val seconds = (TimerState.remainingMillis.value / 1000) % 60
+            val timeString = String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
+            builder.setContentText(timeString)
+        }
+
+        return builder.build()
     }
 
     private fun updateNotification() {
         val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.notify(NOTIFICATION_ID, buildNotification())
+        // If not running, don't pass sessionEndMillis to just show static text
+        notificationManager.notify(NOTIFICATION_ID, buildNotification(null))
     }
 
     private fun createNotificationChannel() {

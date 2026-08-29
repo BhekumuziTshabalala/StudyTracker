@@ -147,4 +147,7 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE scheduledDate >= :startDate AND scheduledDate <= :endDate AND isDeleted = 0")
     fun observeTasksScheduledBetween(startDate: String, endDate: String): Flow<List<Task>>
+
+    @Query("SELECT SUM(actualMinutesSpent) FROM tasks WHERE isDeleted = 0")
+    fun observeTotalFocusTime(): Flow<Int?>
 }

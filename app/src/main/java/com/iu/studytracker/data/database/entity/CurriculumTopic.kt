@@ -31,5 +31,11 @@ data class CurriculumTopic(
     
     val title: String,
     
+    /**
+     * User-assigned day of week: 1=Monday, 2=Tuesday, … 7=Sunday, null=unscheduled.
+     * Used by the Manual Schedule planner so the Dashboard can surface topics for today.
+     */
+    val scheduledDay: Int? = null,
+    
     val updatedAt: Long = System.currentTimeMillis()
 )

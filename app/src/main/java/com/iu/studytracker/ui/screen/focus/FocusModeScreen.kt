@@ -46,6 +46,14 @@ private val BREAK_QUOTES = listOf(
 @Composable
 fun FocusModeScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
+    val window = remember { (context as? android.app.Activity)?.window }
+
+    DisposableEffect(Unit) {
+        window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     val remainingMillis by TimerState.remainingMillis.collectAsState()
     val totalMillis by TimerState.totalMillis.collectAsState()

@@ -64,6 +64,16 @@ class UserPreferencesRepository(private val context: Context) {
     val firebaseApiKey: Flow<String?> = context.dataStore.data.map { it[FIREBASE_API_KEY_KEY] }
     val isFirebaseSyncEnabled: Flow<Boolean> = context.dataStore.data.map { it[FIREBASE_SYNC_ENABLED_KEY] ?: false }
 
+    private val REMINDER_ENABLED_KEY = androidx.datastore.preferences.core.booleanPreferencesKey("reminder_enabled")
+    private val REMINDER_HOUR_KEY = androidx.datastore.preferences.core.intPreferencesKey("reminder_hour")
+    private val REMINDER_MINUTE_KEY = androidx.datastore.preferences.core.intPreferencesKey("reminder_minute")
+    private val GRADING_SYSTEM_KEY = androidx.datastore.preferences.core.stringPreferencesKey("grading_system")
+
+    val reminderEnabled: Flow<Boolean> = context.dataStore.data.map { it[REMINDER_ENABLED_KEY] ?: true }
+    val reminderHour: Flow<Int> = context.dataStore.data.map { it[REMINDER_HOUR_KEY] ?: 8 }
+    val reminderMinute: Flow<Int> = context.dataStore.data.map { it[REMINDER_MINUTE_KEY] ?: 0 }
+    val gradingSystem: Flow<String> = context.dataStore.data.map { it[GRADING_SYSTEM_KEY] ?: "GERMAN" }
+
     suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { preferences ->
             preferences[THEME_KEY] = mode.ordinal
@@ -87,6 +97,20 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setFirebaseSyncEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[FIREBASE_SYNC_ENABLED_KEY] = enabled
+        }
+    }
+
+    suspend fun setReminderTime(enabled: Boolean, hour: Int, minute: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[REMINDER_ENABLED_KEY] = enabled
+            preferences[REMINDER_HOUR_KEY] = hour
+            preferences[REMINDER_MINUTE_KEY] = minute
+        }
+    }
+
+    suspend fun setGradingSystem(system: String) {
+        context.dataStore.edit { preferences ->
+            preferences[GRADING_SYSTEM_KEY] = system
         }
     }
 }

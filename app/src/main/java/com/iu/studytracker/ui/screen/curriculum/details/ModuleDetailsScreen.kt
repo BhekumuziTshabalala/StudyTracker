@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -114,6 +115,77 @@ fun ModuleDetailsScreen(
                     )
                 }
             }
+            
+            // Progress Header
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Module Progress",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (module?.finalGrade != null) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.CheckCircle, 
+                                            contentDescription = null, 
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            "Grade: ${module.finalGrade}", 
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        val progress = if (state.totalTaskCount > 0) state.completedTaskCount.toFloat() / state.totalTaskCount else 0f
+                        
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.size(48.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                strokeWidth = 6.dp
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    "${(progress * 100).toInt()}% Completed",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "${state.completedTaskCount} of ${state.totalTaskCount} tasks",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             // Tasks Section
             item {
@@ -176,6 +248,15 @@ fun ModuleDetailsScreen(
             }
         )
     }
+    
+    if (state.showExamDialog) {
+        val gradingSystem by viewModel.gradingSystem.collectAsState()
+        ExamResultDialog(
+            gradingSystem = gradingSystem,
+            onDismiss = { viewModel.setExamDialogOpen(false) },
+            onSubmit = { passed, grade -> viewModel.submitExamResult(passed, grade) }
+        )
+    }
 }
 
 @Composable
@@ -203,23 +284,23 @@ fun TaskItem(task: ModuleTask, onToggle: (Boolean) -> Unit, onDelete: () -> Unit
                     onCheckedChange = onToggle
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = task.title, style = MaterialTheme.typography.titleMedium)
-                if (task.description.isNotBlank()) {
-                    Text(text = task.description, style = MaterialTheme.typography.bodySmall)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = task.title, style = MaterialTheme.typography.titleMedium)
+                    if (task.description.isNotBlank()) {
+                        Text(text = task.description, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Text(
+                        text = task.type.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
-                Text(
-                    text = task.type.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, "Delete")
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, "Delete")
+                }
             }
         }
     }
-}
 }
 
 @Composable
@@ -290,7 +371,6 @@ fun AddTaskDialog(
                     label = { Text("Description") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                // Simplified type selection for brevity
                 Text("Type", style = MaterialTheme.typography.labelMedium)
                 @OptIn(ExperimentalLayoutApi::class)
                 FlowRow(modifier = Modifier.fillMaxWidth()) {
@@ -342,7 +422,6 @@ fun AddEventDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text("Event Type", style = MaterialTheme.typography.labelMedium)
-                // Using a simple list due to lack of standard dropdown in basic M3 without more code
                 LazyColumn(modifier = Modifier.height(150.dp)) {
                     items(EventType.values()) { t ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -368,6 +447,107 @@ fun AddEventDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+fun ExamResultDialog(
+    gradingSystem: String,
+    onDismiss: () -> Unit,
+    onSubmit: (Boolean, String?) -> Unit
+) {
+    var passed by remember { mutableStateOf<Boolean?>(null) }
+    var grade by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+    
+    val validGrades = when (gradingSystem) {
+        "GERMAN" -> listOf("1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0")
+        "LETTER" -> listOf("A", "B", "C", "D", "E", "F")
+        else -> emptyList() // No strict predefined list for percentages
+    }
+
+    val validateGrade = { g: String ->
+        when (gradingSystem) {
+            "GERMAN", "LETTER" -> validGrades.contains(g)
+            "PERCENTAGE" -> g.toIntOrNull()?.let { it in 0..100 } == true
+            else -> true
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Module Complete! 🎉") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    "You've completed all tasks for this module. Have you passed your final exam?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    FilterChip(
+                        selected = passed == true,
+                        onClick = { passed = true },
+                        label = { Text("Yes, passed") }
+                    )
+                    FilterChip(
+                        selected = passed == false,
+                        onClick = { passed = false },
+                        label = { Text("No, failed") }
+                    )
+                }
+                
+                androidx.compose.animation.AnimatedVisibility(visible = passed != null) {
+                    Column {
+                        val labelText = when (gradingSystem) {
+                            "GERMAN" -> "Final Grade (German Scale)"
+                            "LETTER" -> "Final Grade (Letter)"
+                            "PERCENTAGE" -> "Final Grade (Percentage %)"
+                            else -> "Final Grade"
+                        }
+                        OutlinedTextField(
+                            value = grade,
+                            onValueChange = { 
+                                grade = it
+                                isError = it.isNotEmpty() && !validateGrade(it)
+                            },
+                            label = { Text(labelText) },
+                            isError = isError,
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            supportingText = {
+                                if (isError) {
+                                    val errText = when (gradingSystem) {
+                                        "GERMAN" -> "Invalid grade. Use 1.0, 1.3, 1.7... 4.0, or 5.0"
+                                        "LETTER" -> "Invalid grade. Use A, B, C, D, E, or F"
+                                        "PERCENTAGE" -> "Invalid grade. Enter a number between 0 and 100"
+                                        else -> "Invalid grade"
+                                    }
+                                    Text(errText)
+                                } else {
+                                    val helperText = when (gradingSystem) {
+                                        "GERMAN" -> "e.g., 1.0 (Sehr gut) to 5.0 (Nicht bestanden)"
+                                        "LETTER" -> "e.g., A (Excellent) to F (Fail)"
+                                        "PERCENTAGE" -> "e.g., 85"
+                                        else -> "Enter grade"
+                                    }
+                                    Text(helperText)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(passed!!, grade.takeIf { it.isNotBlank() }) },
+                enabled = passed != null && !isError
+            ) { Text("Save Result") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Skip for now") }
         }
     )
 }

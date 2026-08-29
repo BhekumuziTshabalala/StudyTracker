@@ -47,18 +47,32 @@ data class DashboardUiState(
     val monthPlans: List<MonthPlan> = emptyList(),
     val targetGraduation: String = "",
     val semesterProgress: List<SemesterProgress> = emptyList(),
-    val overdueTasks: List<com.iu.studytracker.data.database.entity.Task> = emptyList()
+    val overdueTasks: List<com.iu.studytracker.data.database.entity.Task> = emptyList(),
+    val isSyncing: Boolean = false,
+    val manualTopics: List<com.iu.studytracker.data.database.entity.CurriculumTopic> = emptyList()
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = (application as StudyTrackerApp).repository
+    private val syncManager = (application as StudyTrackerApp).syncManager
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
         loadDashboard()
+        viewModelScope.launch {
+            syncManager.isSyncing.collect { syncing ->
+                _uiState.update { it.copy(isSyncing = syncing) }
+            }
+        }
+    }
+
+    fun triggerManualSync() {
+        viewModelScope.launch {
+            syncManager.triggerManualSync()
+        }
     }
 
     private fun loadDashboard() {
@@ -166,7 +180,16 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 }
             }
+        }
             
+        viewModelScope.launch(Dispatchers.IO) {
+            val now = LocalDate.now()
+            repository.observeCurriculumTopicsForDay(now.dayOfWeek.value).collect { topics ->
+                _uiState.update { it.copy(manualTopics = topics) }
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
             // Observe overdue tasks
             launch {
                 repository.observeOverdueTasks().collect { overdueTasks ->

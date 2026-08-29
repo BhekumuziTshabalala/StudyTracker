@@ -1,4 +1,4 @@
-﻿package com.iu.studytracker.ui.screen.settings
+package com.iu.studytracker.ui.screen.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -84,6 +85,37 @@ fun SettingsScreen(
         var editApiKey by remember(firebaseApiKey) { mutableStateOf(firebaseApiKey ?: "") }
 
         var showDegreeFields by remember { mutableStateOf(false) }
+        var showQrDialog by remember { mutableStateOf(false) }
+
+        if (showQrDialog) {
+            val qrData = """{"projectId":"$firebaseProjectId","appId":"$firebaseAppId","apiKey":"$firebaseApiKey"}"""
+            val qrBitmap = remember(qrData) { generateQrCode(qrData) }
+            
+            AlertDialog(
+                onDismissRequest = { showQrDialog = false },
+                title = { Text("Link Web App") },
+                text = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        Text("Scan this QR Code from your Dolphin web app's Settings page.", style = MaterialTheme.typography.bodyMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Spacer(Modifier.height(16.dp))
+                        if (qrBitmap != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = qrBitmap,
+                                contentDescription = "QR Code",
+                                modifier = Modifier.size(200.dp)
+                            )
+                        } else {
+                            Text("Failed to generate QR Code")
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showQrDialog = false }) {
+                        Text("Close")
+                    }
+                }
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -107,6 +139,60 @@ fun SettingsScreen(
                         title = label,
                         selected = themeMode == mode,
                         onClick = { viewModel.setThemeMode(mode) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            val reminderEnabled by viewModel.reminderEnabled.collectAsState()
+            val reminderHour by viewModel.reminderHour.collectAsState()
+            val reminderMinute by viewModel.reminderMinute.collectAsState()
+            var showTimePicker by remember { mutableStateOf(false) }
+
+            if (showTimePicker) {
+                val timePickerState = rememberTimePickerState(
+                    initialHour = reminderHour,
+                    initialMinute = reminderMinute
+                )
+                AlertDialog(
+                    onDismissRequest = { showTimePicker = false },
+                    title = { Text("Set Reminder Time") },
+                    text = {
+                        TimePicker(state = timePickerState)
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.setReminderTime(reminderEnabled, timePickerState.hour, timePickerState.minute)
+                            showTimePicker = false
+                        }) {
+                            Text("OK")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showTimePicker = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            SettingsGroupLabel("Reminders")
+            SettingsGroup {
+                SettingsSwitchRow(
+                    icon = Icons.Default.Notifications,
+                    title = "Daily Study Reminder",
+                    subtitle = "Get notified about incomplete tasks",
+                    checked = reminderEnabled,
+                    onCheckedChange = { viewModel.setReminderTime(it, reminderHour, reminderMinute) }
+                )
+                if (reminderEnabled) {
+                    SettingsDivider()
+                    SettingsRow(
+                        icon = Icons.Default.Schedule,
+                        title = "Reminder Time",
+                        subtitle = String.format(java.util.Locale.getDefault(), "%02d:%02d", reminderHour, reminderMinute),
+                        onClick = { showTimePicker = true }
                     )
                 }
             }
@@ -165,6 +251,47 @@ fun SettingsScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp)
+                    )
+                }
+                
+                SettingsDivider()
+                
+                val gradingSystem by viewModel.gradingSystem.collectAsState()
+                var showGradingDropdown by remember { mutableStateOf(false) }
+                val gradingOptions = listOf("GERMAN" to "German System (1.0 - 5.0)", "PERCENTAGE" to "Percentage (0% - 100%)", "LETTER" to "Letter (A - F)")
+                val selectedGradingText = gradingOptions.find { it.first == gradingSystem }?.second ?: "Unknown"
+
+                SettingsRow(
+                    icon = Icons.Default.Grade,
+                    title = "Grading System",
+                    subtitle = selectedGradingText,
+                    onClick = { showGradingDropdown = true }
+                )
+                
+                if (showGradingDropdown) {
+                    AlertDialog(
+                        onDismissRequest = { showGradingDropdown = false },
+                        title = { Text("Select Grading System") },
+                        text = {
+                            Column {
+                                gradingOptions.forEach { (value, text) ->
+                                    SettingsRadioRow(
+                                        icon = Icons.Default.Grade,
+                                        title = text,
+                                        selected = gradingSystem == value,
+                                        onClick = {
+                                            viewModel.setGradingSystem(value)
+                                            showGradingDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showGradingDropdown = false }) {
+                                Text("Cancel")
+                            }
+                        }
                     )
                 }
             }
@@ -269,6 +396,18 @@ fun SettingsScreen(
                     if (!firebaseProjectId.isNullOrEmpty() && !firebaseAppId.isNullOrEmpty() && !firebaseApiKey.isNullOrEmpty()) {
                         SettingsDivider()
                         SettingsRow(
+                            icon = Icons.Default.QrCode,
+                            title = "Link Web App",
+                            subtitle = "Show QR code to scan from browser",
+                            onClick = { showQrDialog = true },
+                            trailing = {
+                                Icon(Icons.Default.QrCode, "QR Code",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp))
+                            }
+                        )
+                        SettingsDivider()
+                        SettingsRow(
                             icon = Icons.Default.Devices,
                             title = "Linked Devices",
                             subtitle = if (linkedDevices.isEmpty()) "No devices synced yet" else "${linkedDevices.size} device(s)",
@@ -328,18 +467,22 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val versionName = packageInfo.versionName ?: "Unknown"
+
             // About
             SettingsGroupLabel("About")
             SettingsGroup {
                 SettingsInfoRow(
                     icon = Icons.Default.Info,
                     title = "App Version",
-                    value = "1.0.0"
+                    value = versionName
                 )
                 SettingsDivider()
                 SettingsInfoRow(
                     icon = Icons.Default.School,
-                    title = "StudyTracker",
+                    title = "Dolphin",
                     value = "IU Student Companion"
                 )
             }
@@ -481,5 +624,24 @@ fun SettingsRadioRow(icon: ImageVector, title: String, selected: Boolean, onClic
             onClick = onClick,
             colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
         )
+    }
+}
+
+fun generateQrCode(content: String, size: Int = 512): androidx.compose.ui.graphics.ImageBitmap? {
+    if (content.isEmpty()) return null
+    return try {
+        val writer = com.google.zxing.qrcode.QRCodeWriter()
+        val bitMatrix = writer.encode(content, com.google.zxing.BarcodeFormat.QR_CODE, size, size)
+        val width = bitMatrix.width
+        val height = bitMatrix.height
+        val bmp = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.RGB_565)
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                bmp.setPixel(x, y, if (bitMatrix.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+            }
+        }
+        bmp.asImageBitmap()
+    } catch (e: Exception) {
+        null
     }
 }

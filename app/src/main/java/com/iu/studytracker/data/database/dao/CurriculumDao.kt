@@ -25,6 +25,12 @@ interface CurriculumDao {
 
     @Query("UPDATE curriculum_modules SET isCompleted = :isCompleted WHERE id = :moduleId")
     suspend fun updateModuleCompletion(moduleId: String, isCompleted: Boolean)
+    
+    @Query("UPDATE curriculum_modules SET examPassed = :examPassed, finalGrade = :finalGrade WHERE id = :moduleId")
+    suspend fun updateExamResult(moduleId: String, examPassed: Boolean?, finalGrade: String?)
+
+    @Query("SELECT * FROM curriculum_modules WHERE id = :moduleId")
+    fun observeModuleById(moduleId: String): Flow<CurriculumModule?>
 
     @Query("SELECT * FROM curriculum_topics WHERE curriculumModuleId = :moduleId ORDER BY id ASC")
     suspend fun getTopicsForModule(moduleId: String): List<CurriculumTopic>
@@ -41,6 +47,26 @@ interface CurriculumDao {
 
     @Query("DELETE FROM curriculum_modules WHERE id = :moduleId")
     suspend fun deleteCurriculumModule(moduleId: String)
+
+    @Query("""
+        SELECT ct.* FROM curriculum_topics ct
+        INNER JOIN curriculum_modules cm ON ct.curriculumModuleId = cm.id
+        WHERE ct.curriculumModuleId IN (:moduleIds)
+        ORDER BY cm.semester ASC, ct.id ASC
+    """)
+    fun observeTopicsForModules(moduleIds: List<String>): Flow<List<CurriculumTopic>>
+
+    /** Update the day-of-week assignment for a single topic (1=Mon..7=Sun, null=unscheduled) */
+    @Query("UPDATE curriculum_topics SET scheduledDay = :day WHERE id = :topicId")
+    suspend fun updateTopicScheduledDay(topicId: String, day: Int?)
+
+    /** All topics whose scheduledDay matches the given weekday (1=Mon..7=Sun) */
+    @Query("SELECT * FROM curriculum_topics WHERE scheduledDay = :dayOfWeek ORDER BY id ASC")
+    suspend fun getTopicsForDay(dayOfWeek: Int): List<CurriculumTopic>
+
+    /** Observe topics for a given weekday */
+    @Query("SELECT * FROM curriculum_topics WHERE scheduledDay = :dayOfWeek ORDER BY id ASC")
+    fun observeTopicsForDay(dayOfWeek: Int): Flow<List<CurriculumTopic>>
 
     @Transaction
     suspend fun insertModuleWithTopics(module: CurriculumModule, topics: List<CurriculumTopic>) {

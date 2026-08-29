@@ -20,6 +20,9 @@ sealed class Screen(
 ) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Dashboard)
     object Setup : Screen("setup", "Monthly Setup")
+    object ManualSchedule : Screen("manual_schedule/{moduleIds}", "Plan My Week") {
+        fun createRoute(moduleIds: List<String>) = "manual_schedule/${moduleIds.joinToString(",")}"
+    }
     object Calendar : Screen("calendar", "Calendar", Icons.Default.CalendarMonth)
     object Analytics : Screen("analytics", "Analytics", Icons.AutoMirrored.Filled.TrendingUp)
     object StudyNow : Screen("study_now", "Study", Icons.Default.Timer)

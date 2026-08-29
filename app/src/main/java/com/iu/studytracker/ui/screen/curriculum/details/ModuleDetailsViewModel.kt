@@ -25,7 +25,11 @@ data class ModuleDetailsUiState(
     val tasks: List<ModuleTask> = emptyList(),
     val scheduleEvents: List<ModuleScheduleEvent> = emptyList(),
     val isTaskModalOpen: Boolean = false,
-    val isEventModalOpen: Boolean = false
+    val isEventModalOpen: Boolean = false,
+    val completedTaskCount: Int = 0,
+    val totalTaskCount: Int = 0,
+    val allTasksDone: Boolean = false,
+    val showExamDialog: Boolean = false
 )
 
 class ModuleDetailsViewModel(
@@ -38,16 +42,37 @@ class ModuleDetailsViewModel(
     private val _uiState = MutableStateFlow(ModuleDetailsUiState())
     val uiState: StateFlow<ModuleDetailsUiState> = combine(
         _uiState,
-        repository.observeAllCurriculumModules(),
+        repository.observeModuleById(moduleId),
         repository.observeTasksForModule(moduleId),
-        repository.observeScheduleEventsForModule(moduleId)
-    ) { state, modules, tasks, events ->
+        repository.observeScheduleEventsForModule(moduleId),
+        combine(
+            repository.observeTaskCountForModule(moduleId),
+            repository.observeCompletedTaskCountForModule(moduleId)
+        ) { total, completed -> Pair(total, completed) }
+    ) { state, module, tasks, events, counts ->
+        val totalCount = counts.first
+        val completedCount = counts.second
+        
+        val allDone = totalCount > 0 && completedCount == totalCount
+        // Only show dialog if it just became all done, and hasn't been asked yet
+        val shouldShowDialog = allDone && module?.examPassed == null && state.showExamDialog == false
+
         state.copy(
-            module = modules.find { it.id == moduleId },
+            module = module,
             tasks = tasks,
-            scheduleEvents = events
+            scheduleEvents = events,
+            totalTaskCount = totalCount,
+            completedTaskCount = completedCount,
+            allTasksDone = allDone,
+            showExamDialog = if (shouldShowDialog && !state.showExamDialog && !state.allTasksDone) true else state.showExamDialog
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ModuleDetailsUiState())
+
+    val gradingSystem = (application as StudyTrackerApp).userPreferences.gradingSystem.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = "GERMAN"
+    )
 
     fun setTaskModalOpen(isOpen: Boolean) {
         _uiState.update { it.copy(isTaskModalOpen = isOpen) }
@@ -55,6 +80,10 @@ class ModuleDetailsViewModel(
 
     fun setEventModalOpen(isOpen: Boolean) {
         _uiState.update { it.copy(isEventModalOpen = isOpen) }
+    }
+    
+    fun setExamDialogOpen(isOpen: Boolean) {
+        _uiState.update { it.copy(showExamDialog = isOpen) }
     }
 
     fun addTask(title: String, description: String, type: TaskType, dueDate: Long?) {
@@ -69,12 +98,28 @@ class ModuleDetailsViewModel(
                 )
             )
             setTaskModalOpen(false)
+            com.iu.studytracker.widget.ModuleProgressWidget.updateAllWidgets(getApplication())
         }
     }
 
     fun toggleTaskCompletion(taskId: String, isCompleted: Boolean) {
         viewModelScope.launch {
             repository.updateModuleTaskCompletion(taskId, isCompleted)
+            
+            // Re-fetch counts to trigger dialog if needed (the combine block will handle this automatically
+            // once the DB updates, but we want to make sure the transition triggers the dialog).
+            // We set allTasksDone to false in local state if we uncheck, so it can re-trigger when checked again.
+            if (!isCompleted) {
+                 _uiState.update { it.copy(allTasksDone = false) }
+            }
+            com.iu.studytracker.widget.ModuleProgressWidget.updateAllWidgets(getApplication())
+        }
+    }
+
+    fun submitExamResult(passed: Boolean, grade: String?) {
+        viewModelScope.launch {
+            repository.updateExamResult(moduleId, passed, grade)
+            setExamDialogOpen(false)
         }
     }
 

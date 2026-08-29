@@ -17,6 +17,12 @@ interface ModuleDetailsDao {
     @Query("SELECT * FROM module_tasks WHERE curriculumModuleId = :moduleId ORDER BY dueDate ASC, id ASC")
     fun getTasksForModule(moduleId: String): Flow<List<ModuleTask>>
 
+    @Query("SELECT COUNT(*) FROM module_tasks WHERE curriculumModuleId = :moduleId")
+    fun observeTaskCountForModule(moduleId: String): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM module_tasks WHERE curriculumModuleId = :moduleId AND isCompleted = 1")
+    fun observeCompletedTaskCountForModule(moduleId: String): Flow<Int>
+
     @Insert
     suspend fun insertTask(task: ModuleTask)
 

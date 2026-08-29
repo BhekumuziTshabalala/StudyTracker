@@ -95,7 +95,7 @@ fun AnalyticsContent(uiState: AnalyticsUiState) {
             SummaryCard(
                 title = "Focus Time",
                 value = "${uiState.totalFocusTimeThisWeek}m",
-                subtitle = "This week",
+                subtitle = "This week • ${uiState.overallFocusTime}m overall",
                 icon = Icons.Default.Timer,
                 accentColor = Module1Color,
                 modifier = Modifier.weight(1f)
