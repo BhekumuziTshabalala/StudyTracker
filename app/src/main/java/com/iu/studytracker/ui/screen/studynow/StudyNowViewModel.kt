@@ -33,6 +33,7 @@ data class StudyNowUiState(
     val topics: List<com.iu.studytracker.data.database.entity.CurriculumTopic> = emptyList(),
     val showTopicSelectionDialog: Boolean = false,
     val showRescheduleDialog: Boolean = false,
+    val showPostSessionDialog: Boolean = false,
     val selectedModuleId: String? = null,
     val selectedTopicId: String? = null
 ) {
@@ -70,9 +71,9 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
                 Triple(isRunning, remaining, sessionState)
             }.collect { (isRunning, remaining, sessionState) ->
                 val newTimerState = when {
-                    // Never show PAUSED or FINISHED with 0 remaining — it's a stale state from a dead session
-                    remaining <= 0L && !isRunning -> TimerState.IDLE
                     sessionState == com.iu.studytracker.service.SessionState.FINISHED -> TimerState.FINISHED
+                    // Never show PAUSED with 0 remaining — it's a stale state from a dead session
+                    remaining <= 0L && !isRunning -> TimerState.IDLE
                     sessionState == com.iu.studytracker.service.SessionState.FOCUSING && isRunning -> TimerState.FOCUSING
                     sessionState == com.iu.studytracker.service.SessionState.BREAK && isRunning -> TimerState.BREAK
                     (sessionState == com.iu.studytracker.service.SessionState.FOCUSING || sessionState == com.iu.studytracker.service.SessionState.BREAK) && !isRunning && remaining > 0L -> TimerState.PAUSED
@@ -82,6 +83,7 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
                 _uiState.update { 
                     it.copy(
                         timerState = newTimerState,
+                        showPostSessionDialog = newTimerState == TimerState.FINISHED,
                         timeRemainingSeconds = if (newTimerState != TimerState.IDLE) (remaining / 1000).toInt() else it.currentFocusMinutes * 60
                     )
                 }
@@ -181,16 +183,34 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
             action = com.iu.studytracker.service.FocusTimerService.ACTION_STOP
         }
         getApplication<Application>().startService(intent)
+        // Note: We intentionally do not clear selectedTopicId here, 
+        // so that the post-session dialog retains its context.
+    }
+    
+    private fun hardResetTimer() {
+        val intent = android.content.Intent(getApplication(), com.iu.studytracker.service.FocusTimerService::class.java).apply {
+            action = com.iu.studytracker.service.FocusTimerService.ACTION_STOP
+        }
+        getApplication<Application>().startService(intent)
         _uiState.update { 
             it.copy(
                 selectedTopicId = null,
-                selectedModuleId = null
+                selectedModuleId = null,
+                showPostSessionDialog = false
             ) 
         }
     }
     
     private fun resetTimer() {
+        hardResetTimer()
+    }
+    
+    fun endPausedSession() {
         stopTimer()
+    }
+    
+    fun dismissPostSession() {
+        hardResetTimer()
     }
     
     fun markTopicDone() {
@@ -200,10 +220,12 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
                 repository.updateCurriculumTopicCompletion(topicId, true)
             }
         }
-        stopTimer()
+        hardResetTimer()
     }
     
     fun takeBreak() {
+        // Taking a break closes the post-session state.
+        hardResetTimer()
         startBreakTimer()
     }
     
@@ -219,7 +241,7 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
             }
         }
         _uiState.update { it.copy(showRescheduleDialog = false) }
-        stopTimer()
+        hardResetTimer()
     }
     
     fun onDismissReschedule() {

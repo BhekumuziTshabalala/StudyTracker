@@ -213,7 +213,7 @@ fun StudyNowContent(
             
             // Post-Focus Session Flow
             AnimatedVisibility(
-                visible = uiState.timerState == TimerState.FINISHED,
+                visible = uiState.showPostSessionDialog,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
@@ -236,6 +236,37 @@ fun StudyNowContent(
                         }
                         OutlinedButton(onClick = { viewModel.scheduleForLater() }) {
                             Text("Schedule for Later")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = { viewModel.dismissPostSession() }) {
+                        Text("Dismiss")
+                    }
+                }
+            }
+            
+            // Paused Session Flow
+            AnimatedVisibility(
+                visible = uiState.timerState == TimerState.PAUSED,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Session Paused",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Button(onClick = { viewModel.toggleTimer() }) {
+                            Text("Resume")
+                        }
+                        OutlinedButton(onClick = { viewModel.endPausedSession() }) {
+                            Text("End Session")
                         }
                     }
                 }
