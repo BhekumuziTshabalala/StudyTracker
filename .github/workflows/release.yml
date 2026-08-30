@@ -23,6 +23,11 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
 
+      - name: Fix gradlew line endings and permissions
+        run: |
+          sed -i -e 's/\r$//' gradlew
+          chmod +x gradlew
+
       - name: Build Release APK
         run: ./gradlew assembleRelease
         env:
