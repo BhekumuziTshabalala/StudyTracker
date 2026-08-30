@@ -84,3 +84,7 @@ ehthumbs_vista.db
 # Log files
 *.log
 
+#KEY STONE
+*.jks
+*.keystore
+
