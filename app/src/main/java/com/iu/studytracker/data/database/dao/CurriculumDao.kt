@@ -26,6 +26,9 @@ interface CurriculumDao {
     @Query("UPDATE curriculum_modules SET isCompleted = :isCompleted WHERE id = :moduleId")
     suspend fun updateModuleCompletion(moduleId: String, isCompleted: Boolean)
     
+    @Query("UPDATE curriculum_topics SET isCompleted = :isCompleted WHERE id = :topicId")
+    suspend fun updateTopicCompletion(topicId: String, isCompleted: Boolean)
+    
     @Query("UPDATE curriculum_modules SET examPassed = :examPassed, finalGrade = :finalGrade WHERE id = :moduleId")
     suspend fun updateExamResult(moduleId: String, examPassed: Boolean?, finalGrade: String?)
 
@@ -35,12 +38,18 @@ interface CurriculumDao {
     @Query("SELECT * FROM curriculum_topics WHERE curriculumModuleId = :moduleId ORDER BY id ASC")
     suspend fun getTopicsForModule(moduleId: String): List<CurriculumTopic>
     
+    @Query("SELECT * FROM curriculum_topics WHERE curriculumModuleId = :moduleId ORDER BY id ASC")
+    fun observeTopicsForModule(moduleId: String): Flow<List<CurriculumTopic>>
+    
     @Query("SELECT * FROM curriculum_topics WHERE curriculumModuleId IN (:moduleIds) ORDER BY id ASC")
     suspend fun getTopicsForModules(moduleIds: List<String>): List<CurriculumTopic>
 
 
     @Query("SELECT * FROM curriculum_topics")
     suspend fun getAllCurriculumTopics(): List<CurriculumTopic>
+    
+    @Query("SELECT * FROM curriculum_topics")
+    fun observeAllCurriculumTopics(): Flow<List<CurriculumTopic>>
 
     @Query("DELETE FROM curriculum_modules")
     suspend fun clearCurriculum()
@@ -57,8 +66,11 @@ interface CurriculumDao {
     fun observeTopicsForModules(moduleIds: List<String>): Flow<List<CurriculumTopic>>
 
     /** Update the day-of-week assignment for a single topic (1=Mon..7=Sun, null=unscheduled) */
-    @Query("UPDATE curriculum_topics SET scheduledDay = :day WHERE id = :topicId")
-    suspend fun updateTopicScheduledDay(topicId: String, day: Int?)
+    @Query("UPDATE curriculum_topics SET scheduledDay = :day, scheduledTime = :time, timeSlotCategory = :category WHERE id = :topicId")
+    suspend fun updateTopicSchedule(topicId: String, day: Int?, time: String?, category: String?)
+
+    @Query("UPDATE curriculum_topics SET title = :title WHERE id = :topicId")
+    suspend fun updateTopicTitle(topicId: String, title: String)
 
     /** All topics whose scheduledDay matches the given weekday (1=Mon..7=Sun) */
     @Query("SELECT * FROM curriculum_topics WHERE scheduledDay = :dayOfWeek ORDER BY id ASC")

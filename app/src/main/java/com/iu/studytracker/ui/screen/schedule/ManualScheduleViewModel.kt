@@ -13,6 +13,7 @@ import java.time.LocalDate
 data class ManualScheduleUiState(
     val modules: List<CurriculumModule> = emptyList(),
     val topics: List<CurriculumTopic> = emptyList(),
+    val topicsByDay: Map<Int, List<CurriculumTopic>> = emptyMap(),
     val isLoading: Boolean = true
 )
 
@@ -29,16 +30,34 @@ class ManualScheduleViewModel(application: Application) : AndroidViewModel(appli
         selectedModuleIds = moduleIds
 
         viewModelScope.launch {
-            // Load the selected modules
             val allModules = repository.getAllCurriculumModulesSync()
             val filteredModules = allModules.filter { it.id in moduleIds }
 
+            // Auto-allocate unscheduled topics
+            val topicsToAllocate = repository.getTopicsForModulesSync(moduleIds)
+            var currentDay = 1 // Start at Monday
+            var madeChanges = false
+            topicsToAllocate.forEach { topic ->
+                if (topic.scheduledDay == null) {
+                    repository.updateCurriculumTopicSchedule(
+                        topicId = topic.id,
+                        day = currentDay,
+                        time = "12:00 PM", // Default Noon
+                        category = "NOON"
+                    )
+                    madeChanges = true
+                    currentDay = if (currentDay >= 7) 1 else currentDay + 1
+                }
+            }
+
             // Observe the topics for these modules
             repository.observeCurriculumTopicsForModules(moduleIds).collect { topics ->
+                val grouped = topics.groupBy { it.scheduledDay ?: -1 }
                 _uiState.update { 
                     it.copy(
                         modules = filteredModules,
                         topics = topics,
+                        topicsByDay = grouped,
                         isLoading = false
                     )
                 }
@@ -46,9 +65,9 @@ class ManualScheduleViewModel(application: Application) : AndroidViewModel(appli
         }
     }
 
-    fun updateTopicDay(topicId: String, dayOfWeek: Int?) {
+    fun updateTopicSchedule(topicId: String, dayOfWeek: Int?, time: String?, category: String?) {
         viewModelScope.launch {
-            repository.updateCurriculumTopicScheduledDay(topicId, dayOfWeek)
+            repository.updateCurriculumTopicSchedule(topicId, dayOfWeek, time, category)
         }
     }
 

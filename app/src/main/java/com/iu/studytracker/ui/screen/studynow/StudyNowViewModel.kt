@@ -28,7 +28,13 @@ data class StudyNowUiState(
     val customBreakMinutes: Int = 5,
     val timerState: TimerState = TimerState.IDLE,
     val timeRemainingSeconds: Int = PomodoroStyle.CLASSIC.focusMinutes * 60,
-    val totalFocusTimeSpentSeconds: Int = 0
+    val totalFocusTimeSpentSeconds: Int = 0,
+    val modules: List<com.iu.studytracker.data.database.entity.CurriculumModule> = emptyList(),
+    val topics: List<com.iu.studytracker.data.database.entity.CurriculumTopic> = emptyList(),
+    val showTopicSelectionDialog: Boolean = false,
+    val showRescheduleDialog: Boolean = false,
+    val selectedModuleId: String? = null,
+    val selectedTopicId: String? = null
 ) {
     val currentFocusMinutes: Int
         get() = if (selectedStyle == PomodoroStyle.CUSTOM) customFocusMinutes else selectedStyle.focusMinutes
@@ -37,25 +43,63 @@ data class StudyNowUiState(
 }
 
 class StudyNowViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = (application as com.iu.studytracker.StudyTrackerApp).repository
+    
     private val _uiState = MutableStateFlow(StudyNowUiState())
     val uiState: StateFlow<StudyNowUiState> = _uiState.asStateFlow()
 
-    private var timerJob: Job? = null
-    // keep track of what state it was in before pause
-    private var prePauseState: TimerState = TimerState.FOCUSING
+    init {
+        viewModelScope.launch {
+            repository.observeAllCurriculumModules().collect { modules ->
+                _uiState.update { it.copy(modules = modules) }
+            }
+        }
+        viewModelScope.launch {
+            repository.observeAllCurriculumTopics().collect { topics ->
+                _uiState.update { it.copy(topics = topics) }
+            }
+        }
+        
+        // Observe global timer state
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(
+                com.iu.studytracker.service.TimerState.isRunning,
+                com.iu.studytracker.service.TimerState.remainingMillis,
+                com.iu.studytracker.service.TimerState.sessionState
+            ) { isRunning, remaining, sessionState ->
+                Triple(isRunning, remaining, sessionState)
+            }.collect { (isRunning, remaining, sessionState) ->
+                val newTimerState = when {
+                    // Never show PAUSED or FINISHED with 0 remaining — it's a stale state from a dead session
+                    remaining <= 0L && !isRunning -> TimerState.IDLE
+                    sessionState == com.iu.studytracker.service.SessionState.FINISHED -> TimerState.FINISHED
+                    sessionState == com.iu.studytracker.service.SessionState.FOCUSING && isRunning -> TimerState.FOCUSING
+                    sessionState == com.iu.studytracker.service.SessionState.BREAK && isRunning -> TimerState.BREAK
+                    (sessionState == com.iu.studytracker.service.SessionState.FOCUSING || sessionState == com.iu.studytracker.service.SessionState.BREAK) && !isRunning && remaining > 0L -> TimerState.PAUSED
+                    else -> TimerState.IDLE
+                }
+                
+                _uiState.update { 
+                    it.copy(
+                        timerState = newTimerState,
+                        timeRemainingSeconds = if (newTimerState != TimerState.IDLE) (remaining / 1000).toInt() else it.currentFocusMinutes * 60
+                    )
+                }
+            }
+        }
+    }
 
-    fun selectStyle(style: PomodoroStyle) {
+    fun setStyle(style: PomodoroStyle) {
         if (_uiState.value.timerState != TimerState.IDLE && _uiState.value.timerState != TimerState.FINISHED) return
         _uiState.update { 
-            val updatedState = it.copy(selectedStyle = style)
-            updatedState.copy(
-                timeRemainingSeconds = updatedState.currentFocusMinutes * 60,
-                timerState = TimerState.IDLE
+            it.copy(
+                selectedStyle = style,
+                timeRemainingSeconds = if (style != PomodoroStyle.CUSTOM) style.focusMinutes * 60 else it.customFocusMinutes * 60
             ) 
         }
     }
 
-    fun updateCustomTime(focusMins: Int, breakMins: Int) {
+    fun setCustomSettings(focusMins: Int, breakMins: Int) {
         if (_uiState.value.timerState != TimerState.IDLE && _uiState.value.timerState != TimerState.FINISHED) return
         _uiState.update { 
             val updatedState = it.copy(customFocusMinutes = focusMins, customBreakMinutes = breakMins)
@@ -70,79 +114,115 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
     fun toggleTimer() {
         val currentState = _uiState.value.timerState
         when (currentState) {
-            TimerState.IDLE -> startFocusTimer()
-            TimerState.FOCUSING -> pauseTimer()
-            TimerState.BREAK -> pauseTimer()
+            TimerState.IDLE -> {
+                if (_uiState.value.selectedTopicId == null) {
+                    _uiState.update { it.copy(showTopicSelectionDialog = true) }
+                } else {
+                    startFocusTimer()
+                }
+            }
+            TimerState.FOCUSING, TimerState.BREAK -> pauseTimer()
             TimerState.PAUSED -> resumeTimer()
             TimerState.FINISHED -> resetTimer()
         }
     }
+    
+    fun onTopicSelected(moduleId: String, topicId: String) {
+        _uiState.update { 
+            it.copy(
+                selectedModuleId = moduleId,
+                selectedTopicId = topicId,
+                showTopicSelectionDialog = false
+            )
+        }
+        startFocusTimer()
+    }
+    
+    fun onDismissTopicSelection() {
+        _uiState.update { it.copy(showTopicSelectionDialog = false) }
+    }
 
     private fun resumeTimer() {
-        _uiState.update { it.copy(timerState = prePauseState) }
-        startTimerCountdown()
+        val intent = android.content.Intent(getApplication(), com.iu.studytracker.service.FocusTimerService::class.java).apply {
+            action = com.iu.studytracker.service.FocusTimerService.ACTION_START
+        }
+        getApplication<Application>().startService(intent)
     }
 
     private fun startFocusTimer() {
-        _uiState.update { 
-            it.copy(
-                timerState = TimerState.FOCUSING,
-                timeRemainingSeconds = it.currentFocusMinutes * 60
-            ) 
+        val selectedTopic = _uiState.value.topics.find { it.id == _uiState.value.selectedTopicId }
+        val title = selectedTopic?.title ?: "Focus Time"
+        val intent = android.content.Intent(getApplication(), com.iu.studytracker.service.FocusTimerService::class.java).apply {
+            action = com.iu.studytracker.service.FocusTimerService.ACTION_START
+            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_ID, _uiState.value.selectedTopicId)
+            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_TITLE, title)
+            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_MINUTES, _uiState.value.currentFocusMinutes)
         }
-        startTimerCountdown()
+        getApplication<Application>().startService(intent)
     }
     
     private fun startBreakTimer() {
-        _uiState.update { 
-            it.copy(
-                timerState = TimerState.BREAK,
-                timeRemainingSeconds = it.currentBreakMinutes * 60
-            ) 
+        val intent = android.content.Intent(getApplication(), com.iu.studytracker.service.FocusTimerService::class.java).apply {
+            action = com.iu.studytracker.service.FocusTimerService.ACTION_START_BREAK
+            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_MINUTES, _uiState.value.currentBreakMinutes)
         }
-        startTimerCountdown()
-    }
-
-    private fun startTimerCountdown() {
-        timerJob?.cancel()
-        timerJob = viewModelScope.launch {
-            while (_uiState.value.timeRemainingSeconds > 0) {
-                delay(1000L)
-                _uiState.update { 
-                    it.copy(
-                        timeRemainingSeconds = it.timeRemainingSeconds - 1,
-                        totalFocusTimeSpentSeconds = if (it.timerState == TimerState.FOCUSING) it.totalFocusTimeSpentSeconds + 1 else it.totalFocusTimeSpentSeconds
-                    ) 
-                }
-            }
-            
-            // Timer finished
-            val currentState = _uiState.value.timerState
-            if (currentState == TimerState.FOCUSING) {
-                startBreakTimer()
-            } else if (currentState == TimerState.BREAK) {
-                _uiState.update { it.copy(timerState = TimerState.FINISHED) }
-            }
-        }
+        getApplication<Application>().startService(intent)
     }
 
     private fun pauseTimer() {
-        timerJob?.cancel()
-        prePauseState = _uiState.value.timerState
-        _uiState.update { it.copy(timerState = TimerState.PAUSED) }
+        val intent = android.content.Intent(getApplication(), com.iu.studytracker.service.FocusTimerService::class.java).apply {
+            action = com.iu.studytracker.service.FocusTimerService.ACTION_PAUSE
+        }
+        getApplication<Application>().startService(intent)
     }
 
     fun stopTimer() {
-        timerJob?.cancel()
+        val intent = android.content.Intent(getApplication(), com.iu.studytracker.service.FocusTimerService::class.java).apply {
+            action = com.iu.studytracker.service.FocusTimerService.ACTION_STOP
+        }
+        getApplication<Application>().startService(intent)
         _uiState.update { 
             it.copy(
-                timerState = TimerState.IDLE,
-                timeRemainingSeconds = it.currentFocusMinutes * 60
+                selectedTopicId = null,
+                selectedModuleId = null
             ) 
         }
     }
     
     private fun resetTimer() {
         stopTimer()
+    }
+    
+    fun markTopicDone() {
+        val topicId = _uiState.value.selectedTopicId
+        if (topicId != null) {
+            viewModelScope.launch {
+                repository.updateCurriculumTopicCompletion(topicId, true)
+            }
+        }
+        stopTimer()
+    }
+    
+    fun takeBreak() {
+        startBreakTimer()
+    }
+    
+    fun scheduleForLater() {
+        _uiState.update { it.copy(showRescheduleDialog = true) }
+    }
+    
+    fun onReschedule(dayOfWeek: Int, time: String, category: String) {
+        val topicId = _uiState.value.selectedTopicId
+        if (topicId != null) {
+            viewModelScope.launch {
+                repository.updateCurriculumTopicSchedule(topicId, dayOfWeek, time, category)
+            }
+        }
+        _uiState.update { it.copy(showRescheduleDialog = false) }
+        stopTimer()
+    }
+    
+    fun onDismissReschedule() {
+        _uiState.update { it.copy(showRescheduleDialog = false) }
     }
 }

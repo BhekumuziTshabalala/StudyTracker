@@ -141,6 +141,10 @@ class StudyRepository(
     suspend fun updateCurriculumModuleCompletion(moduleId: String, isCompleted: Boolean) {
         curriculumDao.updateModuleCompletion(moduleId, isCompleted)
     }
+    
+    suspend fun updateCurriculumTopicCompletion(topicId: String, isCompleted: Boolean) {
+        curriculumDao.updateTopicCompletion(topicId, isCompleted)
+    }
 
     suspend fun updateExamResult(moduleId: String, passed: Boolean?, grade: String?) {
         curriculumDao.updateExamResult(moduleId, passed, grade)
@@ -150,12 +154,24 @@ class StudyRepository(
         return curriculumDao.observeModuleById(moduleId)
     }
 
+    fun observeTopicsForModule(moduleId: String): Flow<List<CurriculumTopic>> {
+        return curriculumDao.observeTopicsForModule(moduleId)
+    }
+
     suspend fun insertCurriculumModuleManually(module: CurriculumModule, topics: List<CurriculumTopic>) {
         curriculumDao.insertModuleWithTopics(module, topics)
     }
 
+    suspend fun updateTopicTitle(topicId: String, title: String) {
+        curriculumDao.updateTopicTitle(topicId, title)
+    }
+
     fun observeAllCurriculumModules(): Flow<List<CurriculumModule>> {
         return curriculumDao.getAllCurriculumModules()
+    }
+    
+    fun observeAllCurriculumTopics(): Flow<List<CurriculumTopic>> {
+        return curriculumDao.observeAllCurriculumTopics()
     }
 
     suspend fun getAllCurriculumModulesSync(): List<CurriculumModule> {
@@ -166,12 +182,16 @@ class StudyRepository(
         curriculumDao.deleteCurriculumModule(moduleId)
     }
 
-    suspend fun updateCurriculumTopicScheduledDay(topicId: String, dayOfWeek: Int?) {
-        curriculumDao.updateTopicScheduledDay(topicId, dayOfWeek)
+    suspend fun updateCurriculumTopicSchedule(topicId: String, day: Int?, time: String?, category: String?) {
+        curriculumDao.updateTopicSchedule(topicId, day, time, category)
     }
 
     fun observeCurriculumTopicsForModules(moduleIds: List<String>): Flow<List<CurriculumTopic>> {
         return curriculumDao.observeTopicsForModules(moduleIds)
+    }
+
+    suspend fun getTopicsForModulesSync(moduleIds: List<String>): List<CurriculumTopic> {
+        return curriculumDao.getTopicsForModules(moduleIds)
     }
 
     fun observeCurriculumTopicsForDay(dayOfWeek: Int): Flow<List<CurriculumTopic>> {

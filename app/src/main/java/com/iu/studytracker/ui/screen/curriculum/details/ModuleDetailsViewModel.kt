@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 
 data class ModuleDetailsUiState(
     val module: CurriculumModule? = null,
+    val topics: List<com.iu.studytracker.data.database.entity.CurriculumTopic> = emptyList(),
     val tasks: List<ModuleTask> = emptyList(),
     val scheduleEvents: List<ModuleScheduleEvent> = emptyList(),
     val isTaskModalOpen: Boolean = false,
@@ -126,6 +127,12 @@ class ModuleDetailsViewModel(
     fun deleteTask(task: ModuleTask) {
         viewModelScope.launch {
             repository.deleteModuleTask(task)
+        }
+    }
+    
+    fun updateTopicTitle(topicId: String, title: String) {
+        viewModelScope.launch {
+            repository.updateTopicTitle(topicId, title)
         }
     }
 

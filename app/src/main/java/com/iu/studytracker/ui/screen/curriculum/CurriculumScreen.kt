@@ -213,12 +213,10 @@ fun CurriculumScreen(
             code = state.manualModuleCode,
             name = state.manualModuleName,
             assessment = state.manualModuleAssessment,
+            totalUnits = state.manualTotalUnits,
             onFieldsChange = viewModel::updateManualFields,
             topics = state.manualTopics,
-            newTopic = state.newTopicText,
-            onNewTopicChange = viewModel::updateNewTopicText,
-            onAddTopic = viewModel::addManualTopic,
-            onRemoveTopic = viewModel::removeManualTopic,
+            onTopicNameChange = viewModel::updateTopicName,
             error = state.error,
             onDismiss = { viewModel.setManualEntryModalOpen(false) },
             onSave = viewModel::saveManualModule
@@ -357,12 +355,10 @@ fun ManualEntryModal(
     code: String,
     name: String,
     assessment: String,
-    onFieldsChange: (String, String, String, String) -> Unit,
+    totalUnits: String,
+    onFieldsChange: (String, String, String, String, String) -> Unit,
     topics: List<String>,
-    newTopic: String,
-    onNewTopicChange: (String) -> Unit,
-    onAddTopic: () -> Unit,
-    onRemoveTopic: (Int) -> Unit,
+    onTopicNameChange: (Int, String) -> Unit,
     error: String?,
     onDismiss: () -> Unit,
     onSave: () -> Unit
@@ -375,14 +371,14 @@ fun ManualEntryModal(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = semester,
-                        onValueChange = { onFieldsChange(it, code, name, assessment) },
+                        onValueChange = { onFieldsChange(it, code, name, assessment, totalUnits) },
                         label = { Text("Sem") },
                         modifier = Modifier.weight(0.3f),
                         shape = RoundedCornerShape(12.dp)
                     )
                     OutlinedTextField(
                         value = code,
-                        onValueChange = { onFieldsChange(semester, it, name, assessment) },
+                        onValueChange = { onFieldsChange(semester, it, name, assessment, totalUnits) },
                         label = { Text("Code") },
                         modifier = Modifier.weight(0.7f),
                         shape = RoundedCornerShape(12.dp)
@@ -390,47 +386,45 @@ fun ManualEntryModal(
                 }
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { onFieldsChange(semester, code, it, assessment) },
+                    onValueChange = { onFieldsChange(semester, code, it, assessment, totalUnits) },
                     label = { Text("Name") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = assessment,
-                    onValueChange = { onFieldsChange(semester, code, name, it) },
+                    onValueChange = { onFieldsChange(semester, code, name, it, totalUnits) },
                     label = { Text("Assessment") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
-                
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                
-                Text("Topics (${topics.size})", style = MaterialTheme.typography.labelMedium)
-                topics.forEachIndexed { index, topic ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(topic, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                        IconButton(onClick = { onRemoveTopic(index) }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(16.dp))
-                        }
-                    }
-                }
-                
-                Row(
+                OutlinedTextField(
+                    value = totalUnits,
+                    onValueChange = { onFieldsChange(semester, code, name, assessment, it) },
+                    label = { Text("Total Number of Units") },
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = newTopic,
-                        onValueChange = onNewTopicChange,
-                        label = { Text("New Topic") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    IconButton(onClick = onAddTopic) {
-                        Icon(Icons.Default.Add, "Add")
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                )
+                
+                if (topics.isNotEmpty()) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                    
+                    Text("Unit Topics (${topics.size})", style = MaterialTheme.typography.labelMedium)
+                    
+                    // Show a list of fields to let user rename the units
+                    Box(modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
+                        androidx.compose.foundation.lazy.LazyColumn {
+                            items(topics.size) { index ->
+                                OutlinedTextField(
+                                    value = topics[index],
+                                    onValueChange = { onTopicNameChange(index, it) },
+                                    label = { Text("Unit ${index + 1} Name") },
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                            }
+                        }
                     }
                 }
 

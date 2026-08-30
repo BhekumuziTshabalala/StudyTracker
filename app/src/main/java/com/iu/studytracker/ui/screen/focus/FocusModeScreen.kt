@@ -13,6 +13,10 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,11 +63,14 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
     val totalMillis by TimerState.totalMillis.collectAsState()
     val isRunning by TimerState.isRunning.collectAsState()
     val currentTaskTitle by TimerState.currentTaskTitle.collectAsState()
+    val selectedTheme by TimerState.selectedTheme.collectAsState()
+    val soundEnabled by TimerState.soundEnabled.collectAsState()
 
-    // Session counter — counts Stop presses on this visit (approximation from state resets)
+    // Session counter
     var sessionCount by remember { mutableIntStateOf(1) }
     var showStopConfirm by remember { mutableStateOf(false) }
     val breakQuote = remember { BREAK_QUOTES.random() }
+    val view = androidx.compose.ui.platform.LocalView.current
 
     // Request POST_NOTIFICATIONS permission for Android 13+
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -89,6 +96,16 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    val soundEnabled by TimerState.soundEnabled.collectAsState()
+
+                    IconButton(onClick = { TimerState.setSoundEnabled(context, !soundEnabled) }) {
+                        Icon(
+                            imageVector = if (soundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                            contentDescription = "Toggle Sound"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
@@ -112,9 +129,10 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 16.dp, bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Top
             ) {
                 // Task title
                 if (currentTaskTitle != null) {
@@ -161,46 +179,66 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(40.dp))
 
+                LaunchedEffect(remainingMillis, isRunning) {
+                    if (isRunning && soundEnabled && remainingMillis > 0L) {
+                        view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
+                    }
+                }
+                
                 // Timer Visuals
-                val progress = if (totalMillis > 0) remainingMillis.toFloat() / totalMillis else 0f
-                val animatedProgress by animateFloatAsState(
-                    targetValue = progress,
-                    animationSpec = tween(1000, easing = LinearEasing),
-                    label = "timerProgress"
-                )
-                val minutes = (remainingMillis / 1000) / 60
-                val seconds = (remainingMillis / 1000) % 60
-                val timeString = String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
-
-                // Timer ring
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .weight(1f)
                         .fillMaxWidth()
+                        .weight(1f)
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
-                        val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
-                        Canvas(modifier = Modifier.size(260.dp)) {
-                            drawCircle(color = surfaceVariantColor, style = Stroke(width = 28.dp.toPx()))
-                            drawArc(
-                                brush = Brush.sweepGradient(listOf(GradientStart, GradientEnd, GradientStart)),
-                                startAngle = -90f,
-                                sweepAngle = 360f * animatedProgress,
-                                useCenter = false,
-                                style = Stroke(width = 28.dp.toPx(), cap = StrokeCap.Round)
+                    when (selectedTheme) {
+                        com.iu.studytracker.service.TimerTheme.MODERN_RING -> {
+                            val progress = if (totalMillis > 0) remainingMillis.toFloat() / totalMillis else 0f
+                            val animatedProgress by animateFloatAsState(
+                                targetValue = progress,
+                                animationSpec = tween(1000, easing = LinearEasing),
+                                label = "timerProgress"
                             )
+                            val minutes = (remainingMillis / 1000) / 60
+                            val seconds = (remainingMillis / 1000) % 60
+                            val timeString = String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
+                            
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
+                                val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
+                                Canvas(modifier = Modifier.size(260.dp)) {
+                                    drawCircle(color = surfaceVariantColor, style = Stroke(width = 28.dp.toPx()))
+                                    drawArc(
+                                        brush = Brush.sweepGradient(listOf(GradientStart, GradientEnd, GradientStart)),
+                                        startAngle = -90f,
+                                        sweepAngle = 360f * animatedProgress,
+                                        useCenter = false,
+                                        style = Stroke(width = 28.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = timeString,
+                                        fontSize = 60.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    if (!isRunning && remainingMillis < totalMillis && remainingMillis > 0) {
+                                        Text("Paused", style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = timeString,
-                                fontSize = 60.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            if (!isRunning && remainingMillis < totalMillis && remainingMillis > 0) {
-                                Text("Paused", style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        com.iu.studytracker.service.TimerTheme.FLIP_CLOCK -> {
+                            val timeRemainingSeconds = (remainingMillis / 1000).toInt()
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                FlipClockTimer(timeRemainingSeconds = timeRemainingSeconds)
+                                Spacer(modifier = Modifier.height(24.dp))
+                                if (!isRunning && remainingMillis < totalMillis && remainingMillis > 0) {
+                                    Text("Paused", style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     }
@@ -217,7 +255,7 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(36.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Controls
                 Row(
@@ -255,7 +293,33 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                // Theme Selector — always visible at bottom
+                Surface(
+                    shape = RoundedCornerShape(50.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Row(modifier = Modifier.padding(4.dp)) {
+                        com.iu.studytracker.service.TimerTheme.entries.forEach { theme ->
+                            val isSelected = theme == selectedTheme
+                            Surface(
+                                onClick = { TimerState.setTheme(context, theme) },
+                                shape = RoundedCornerShape(50.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            ) {
+                                Text(
+                                    text = theme.displayName,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 

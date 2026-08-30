@@ -37,5 +37,13 @@ data class CurriculumTopic(
      */
     val scheduledDay: Int? = null,
     
+    /** e.g. "08:00 AM", "12:00 PM" */
+    val scheduledTime: String? = null,
+    
+    /** "MORNING", "NOON", "NIGHT", "CUSTOM" */
+    val timeSlotCategory: String? = null,
+    
+    val isCompleted: Boolean = false,
+    
     val updatedAt: Long = System.currentTimeMillis()
 )

@@ -23,6 +23,7 @@ data class CurriculumUiState(
     val manualModuleCode: String = "",
     val manualModuleName: String = "",
     val manualModuleAssessment: String = "",
+    val manualTotalUnits: String = "",
     val manualTopics: List<String> = emptyList(),
     val newTopicText: String = "",
     val error: String? = null
@@ -64,6 +65,7 @@ class CurriculumViewModel(application: Application) : AndroidViewModel(applicati
                 manualModuleCode = "",
                 manualModuleName = "",
                 manualModuleAssessment = "",
+                manualTotalUnits = "",
                 manualTopics = emptyList(),
                 newTopicText = "",
                 error = null
@@ -100,14 +102,33 @@ class CurriculumViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun updateManualFields(semester: String, code: String, name: String, assessment: String) {
+    fun updateManualFields(semester: String, code: String, name: String, assessment: String, totalUnits: String) {
         _uiState.update { 
             it.copy(
                 manualSemester = semester,
                 manualModuleCode = code,
                 manualModuleName = name,
-                manualModuleAssessment = assessment
+                manualModuleAssessment = assessment,
+                manualTotalUnits = totalUnits
             )
+        }
+        
+        val count = totalUnits.toIntOrNull()
+        if (count != null && count > 0) {
+            val generated = (1..count).map { i -> "Unit $i" }
+            _uiState.update { it.copy(manualTopics = generated) }
+        } else if (totalUnits.isBlank()) {
+            _uiState.update { it.copy(manualTopics = emptyList()) }
+        }
+    }
+
+    fun updateTopicName(index: Int, newName: String) {
+        _uiState.update { state ->
+            val updated = state.manualTopics.toMutableList()
+            if (index in updated.indices) {
+                updated[index] = newName
+            }
+            state.copy(manualTopics = updated)
         }
     }
 

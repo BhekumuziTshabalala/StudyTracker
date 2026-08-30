@@ -10,7 +10,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -187,6 +189,25 @@ fun ModuleDetailsScreen(
                 }
             }
 
+            // Units Section
+            item {
+                Text(
+                    text = "Units & Topics",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                )
+                if (state.topics.isEmpty()) {
+                    Text("No units defined for this module.", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            items(state.topics) { topic ->
+                TopicEditItem(
+                    topic = topic,
+                    onTitleChange = { newTitle -> viewModel.updateTopicTitle(topic.id, newTitle) }
+                )
+            }
+            
             // Tasks Section
             item {
                 Text(
@@ -550,4 +571,37 @@ fun ExamResultDialog(
             TextButton(onClick = onDismiss) { Text("Skip for now") }
         }
     )
+}
+
+@Composable
+fun TopicEditItem(
+    topic: com.iu.studytracker.data.database.entity.CurriculumTopic,
+    onTitleChange: (String) -> Unit
+) {
+    var title by remember { mutableStateOf(topic.title) }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = title,
+                onValueChange = { 
+                    title = it
+                    onTitleChange(it)
+                },
+                modifier = Modifier.weight(1f),
+                label = { Text("Topic Description") },
+                singleLine = true
+            )
+        }
+    }
 }

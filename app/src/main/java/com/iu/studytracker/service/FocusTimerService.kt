@@ -24,13 +24,15 @@ class FocusTimerService : Service() {
         const val ACTION_START = "ACTION_START"
         const val ACTION_PAUSE = "ACTION_PAUSE"
         const val ACTION_STOP = "ACTION_STOP"
+        const val ACTION_START_BREAK = "ACTION_START_BREAK"
+        const val ACTION_CONTINUE_SESSION = "ACTION_CONTINUE_SESSION"
         
         const val EXTRA_TASK_ID = "EXTRA_TASK_ID"
         const val EXTRA_TASK_TITLE = "EXTRA_TASK_TITLE"
         const val EXTRA_MINUTES = "EXTRA_MINUTES"
         
-        private const val NOTIFICATION_CHANNEL_ID = "focus_timer_channel"
-        private const val NOTIFICATION_ID = 1
+        const val NOTIFICATION_CHANNEL_ID = "focus_timer_channel"
+        const val NOTIFICATION_ID = 1001
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -53,6 +55,12 @@ class FocusTimerService : Service() {
                         TimerState.currentTaskTitle.value = title
                         TimerState.totalMillis.value = minutes * 60 * 1000L
                         TimerState.remainingMillis.value = TimerState.totalMillis.value
+                        TimerState.sessionState.value = SessionState.FOCUSING
+                        
+                        getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE)
+                            .edit()
+                            .putInt("KEY_LAST_FOCUS_MINUTES", minutes)
+                            .apply()
                     }
                 } else {
                     // Resume action: if we don't have a current task, we can't resume
@@ -69,6 +77,22 @@ class FocusTimerService : Service() {
             ACTION_STOP -> {
                 stopTimer()
             }
+            ACTION_START_BREAK -> {
+                val breakMinutes = intent?.getIntExtra(EXTRA_MINUTES, 5) ?: 5
+                TimerState.totalMillis.value = breakMinutes * 60 * 1000L
+                TimerState.remainingMillis.value = TimerState.totalMillis.value
+                TimerState.sessionState.value = SessionState.BREAK
+                startTimer()
+            }
+            ACTION_CONTINUE_SESSION -> {
+                // Return to focusing
+                TimerState.sessionState.value = SessionState.FOCUSING
+                // We keep the same task ID and title, but restore the focus minutes
+                val minutes = intent?.getIntExtra(EXTRA_MINUTES, 25) ?: 25
+                TimerState.totalMillis.value = minutes * 60 * 1000L
+                TimerState.remainingMillis.value = TimerState.totalMillis.value
+                startTimer()
+            }
         }
         return START_NOT_STICKY
     }
@@ -77,6 +101,7 @@ class FocusTimerService : Service() {
         if (timerJob?.isActive == true) return
         
         TimerState.isRunning.value = true
+        PauseReminderReceiver.cancelReminder(this)
         
         // If we have a saved session end, use it; otherwise compute it.
         val prefs = getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE)
@@ -90,6 +115,7 @@ class FocusTimerService : Service() {
             .putString(TimerState.KEY_TASK_TITLE, TimerState.currentTaskTitle.value)
             .putLong(TimerState.KEY_TOTAL_MILLIS, TimerState.totalMillis.value)
             .putLong(TimerState.KEY_REMAINING_MILLIS, TimerState.remainingMillis.value)
+            .putString(TimerState.KEY_SESSION_STATE, TimerState.sessionState.value.name)
             .putBoolean(TimerState.KEY_IS_RUNNING, true)
             .apply()
             
@@ -98,14 +124,15 @@ class FocusTimerService : Service() {
         timerJob = serviceScope.launch {
             while (TimerState.isRunning.value) {
                 val now = System.currentTimeMillis()
-                val remaining = max(0L, sessionEndEpochMillis - now)
-                TimerState.remainingMillis.value = remaining
+                val rem = max(0L, sessionEndEpochMillis - now)
+                TimerState.remainingMillis.value = rem
                 
-                if (remaining == 0L) {
+                if (rem == 0L) {
                     onTimerFinished()
                     break
                 }
-                delay(1000)
+                
+                delay(1000L)
             }
         }
     }
@@ -123,50 +150,138 @@ class FocusTimerService : Service() {
             .apply()
             
         updateNotification()
+        
+        // Schedule 5-minute pause reminder
+        PauseReminderReceiver.scheduleNextReminder(this)
     }
 
     private fun stopTimer() {
+        val currentState = TimerState.sessionState.value
+        if (currentState == SessionState.FOCUSING || currentState == SessionState.BREAK) {
+            // Premature termination
+            finishSession(premature = true)
+        } else {
+            // Hard stop
+            clearTimerState()
+        }
+    }
+
+    private fun onTimerFinished() {
+        finishSession(premature = false)
+    }
+    
+    private fun finishSession(premature: Boolean) {
         pauseTimer()
+        PauseReminderReceiver.cancelReminder(this)
+        val prefs = getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE)
         
+        if (!premature && TimerState.soundEnabled.value) {
+            try {
+                val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+                val ringtone = android.media.RingtoneManager.getRingtone(applicationContext, uri)
+                ringtone?.play()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        
+        val currentState = TimerState.sessionState.value
         val taskId = TimerState.currentTaskId.value
         val millisSpent = TimerState.totalMillis.value - TimerState.remainingMillis.value
         val minutesSpent = (millisSpent / (60 * 1000L)).toInt()
         
-        if (taskId != null && minutesSpent > 0) {
-            serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                val repository = (applicationContext as com.iu.studytracker.StudyTrackerApp).repository
+        if (taskId != null && minutesSpent > 0 && currentState == SessionState.FOCUSING) {
+            serviceScope.launch(Dispatchers.IO) {
+                val repository = (applicationContext as StudyTrackerApp).repository
                 repository.incrementTaskMinutes(taskId, minutesSpent)
             }
         }
-        
-        // Clear SharedPrefs
-        getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE).edit().clear().apply()
+
+        if (currentState == SessionState.FOCUSING) {
+            // Go to FINISHED state to trigger the post-session UI
+            TimerState.sessionState.value = SessionState.FINISHED
+            prefs.edit().putString(TimerState.KEY_SESSION_STATE, SessionState.FINISHED.name)
+                .remove(TimerState.KEY_SESSION_END)
+                .putBoolean(TimerState.KEY_IS_RUNNING, false)
+                .apply()
+                
+            if (!premature) {
+                showTimerFinishedNotification(isBreak = false)
+            }
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else if (currentState == SessionState.BREAK) {
+            // If it's a break, whether premature or not, just finish it.
+            // But we shouldn't show a notification if they manually stopped it early.
+            TimerState.sessionState.value = SessionState.FINISHED
+            prefs.edit().putString(TimerState.KEY_SESSION_STATE, SessionState.FINISHED.name)
+                .remove(TimerState.KEY_SESSION_END)
+                .putBoolean(TimerState.KEY_IS_RUNNING, false)
+                .apply()
+                
+            if (!premature) {
+                showTimerFinishedNotification(isBreak = true)
+            }
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            clearTimerState()
+        }
+    }
+    
+    private fun clearTimerState() {
+        PauseReminderReceiver.cancelReminder(this)
+        getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE).edit()
+            .remove(TimerState.KEY_SESSION_END)
+            .remove(TimerState.KEY_TASK_ID)
+            .remove(TimerState.KEY_TASK_TITLE)
+            .remove(TimerState.KEY_TOTAL_MILLIS)
+            .remove(TimerState.KEY_IS_RUNNING)
+            .remove(TimerState.KEY_REMAINING_MILLIS)
+            .remove(TimerState.KEY_SESSION_STATE)
+            .apply()
         
         TimerState.reset()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
-
-    private fun onTimerFinished() {
-        TimerState.isRunning.value = false
-        val taskId = TimerState.currentTaskId.value
-        val minutesSpent = (TimerState.totalMillis.value / (60 * 1000L)).toInt()
+    
+    private fun showTimerFinishedNotification(isBreak: Boolean) {
+        val title = if (isBreak) "Break Over!" else "Focus Session Complete!"
+        val text = if (isBreak) "Time to get back to studying." else "Great job! Time for a break or next unit."
         
-        // Clear SharedPrefs
-        getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE).edit().clear().apply()
-        
-        // Update database
-        if (taskId != null) {
-            serviceScope.launch(Dispatchers.IO) {
-                val repository = (applicationContext as StudyTrackerApp).repository
-                // We'll add an increment method to the repository
-                repository.incrementTaskMinutes(taskId, minutesSpent)
-            }
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
         
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        TimerState.reset()
-        stopSelf()
+        val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_VIBRATE)
+            
+        if (isBreak) {
+            val prefs = getSharedPreferences(TimerState.PREFS_NAME, MODE_PRIVATE)
+            val lastFocusMinutes = prefs.getInt("KEY_LAST_FOCUS_MINUTES", 25)
+            
+            val continueIntent = Intent(this, FocusTimerService::class.java).apply {
+                action = ACTION_CONTINUE_SESSION
+                putExtra(EXTRA_MINUTES, lastFocusMinutes)
+            }
+            val continuePendingIntent = PendingIntent.getService(
+                this, 1, continueIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            builder.addAction(0, "Continue Session", continuePendingIntent)
+        }
+
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID + 1, builder.build())
     }
 
     private fun buildNotification(sessionEndMillis: Long? = null): Notification {

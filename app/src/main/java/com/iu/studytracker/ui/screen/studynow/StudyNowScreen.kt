@@ -6,8 +6,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -123,7 +126,8 @@ fun StudyNowContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(androidx.compose.foundation.rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (isFullscreen) {
@@ -139,7 +143,7 @@ fun StudyNowContent(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     StyleSelector(
                         selectedStyle = uiState.selectedStyle,
-                        onStyleSelected = { viewModel.selectStyle(it) }
+                        onStyleSelected = { viewModel.setStyle(it) }
                     )
                     
                     if (uiState.selectedStyle == PomodoroStyle.CUSTOM) {
@@ -157,7 +161,7 @@ fun StudyNowContent(
                                     if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                                         focusText = it
                                         val mins = it.toIntOrNull() ?: 0
-                                        if (mins > 0) viewModel.updateCustomTime(mins, uiState.customBreakMinutes)
+                                        if (mins > 0) viewModel.setCustomSettings(mins, uiState.customBreakMinutes)
                                     }
                                 },
                                 label = { Text("Focus (min)") },
@@ -171,7 +175,7 @@ fun StudyNowContent(
                                     if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                                         breakText = it
                                         val mins = it.toIntOrNull() ?: 0
-                                        if (mins > 0) viewModel.updateCustomTime(uiState.customFocusMinutes, mins)
+                                        if (mins > 0) viewModel.setCustomSettings(uiState.customFocusMinutes, mins)
                                     }
                                 },
                                 label = { Text("Break (min)") },
@@ -186,10 +190,14 @@ fun StudyNowContent(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            val selectedTheme by com.iu.studytracker.service.TimerState.selectedTheme.collectAsState()
+            val context = androidx.compose.ui.platform.LocalContext.current
+
             // Timer Display
             TimerDisplay(
                 uiState = uiState,
-                modifier = Modifier.weight(1f)
+                selectedTheme = selectedTheme,
+                modifier = Modifier.padding(vertical = 16.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -202,6 +210,146 @@ fun StudyNowContent(
             )
             
             Spacer(modifier = Modifier.height(32.dp))
+            
+            // Post-Focus Session Flow
+            AnimatedVisibility(
+                visible = uiState.timerState == TimerState.FINISHED,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Did you complete this unit?",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { viewModel.markTopicDone() }) {
+                            Text("Mark Done")
+                        }
+                        Button(onClick = { viewModel.takeBreak() }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
+                            Text("Take Break")
+                        }
+                        OutlinedButton(onClick = { viewModel.scheduleForLater() }) {
+                            Text("Schedule for Later")
+                        }
+                    }
+                }
+            }
+
+            // Theme Selector
+            Surface(
+                shape = RoundedCornerShape(50.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            ) {
+                Row(modifier = Modifier.padding(4.dp)) {
+                    com.iu.studytracker.service.TimerTheme.entries.forEach { theme ->
+                        val isSelected = theme == selectedTheme
+                        Surface(
+                            onClick = { com.iu.studytracker.service.TimerState.setTheme(context, theme) },
+                            shape = RoundedCornerShape(50.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        ) {
+                            Text(
+                                text = theme.displayName,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (uiState.showTopicSelectionDialog) {
+            TopicSelectionDialog(
+                modules = uiState.modules,
+                topics = uiState.topics,
+                onDismiss = { viewModel.onDismissTopicSelection() },
+                onTopicSelected = { moduleId, topicId -> viewModel.onTopicSelected(moduleId, topicId) }
+            )
+        }
+        
+        if (uiState.showRescheduleDialog) {
+            RescheduleDialog(
+                onDismiss = { viewModel.onDismissReschedule() },
+                onSave = { day, time, category -> viewModel.onReschedule(day, time, category) }
+            )
+        }
+    }
+}
+
+@Composable
+fun TopicSelectionDialog(
+    modules: List<com.iu.studytracker.data.database.entity.CurriculumModule>,
+    topics: List<com.iu.studytracker.data.database.entity.CurriculumTopic>,
+    onDismiss: () -> Unit,
+    onTopicSelected: (String, String) -> Unit
+) {
+    var selectedModuleId by remember { mutableStateOf<String?>(null) }
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth().heightIn(max = 400.dp)
+            ) {
+                Text(
+                    text = if (selectedModuleId == null) "Select Module" else "Select Unit",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                if (selectedModuleId == null) {
+                    androidx.compose.foundation.lazy.LazyColumn {
+                        items(modules.size) { index ->
+                            val module = modules[index]
+                            Text(
+                                text = module.name,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedModuleId = module.id }
+                                    .padding(vertical = 12.dp)
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                        }
+                    }
+                } else {
+                    val moduleTopics = topics.filter { it.curriculumModuleId == selectedModuleId && !it.isCompleted }
+                    if (moduleTopics.isEmpty()) {
+                        Text("No pending units for this module.")
+                    } else {
+                        androidx.compose.foundation.lazy.LazyColumn {
+                            items(moduleTopics.size) { index ->
+                                val topic = moduleTopics[index]
+                                Text(
+                                    text = topic.title,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onTopicSelected(selectedModuleId!!, topic.id) }
+                                        .padding(vertical = 12.dp)
+                                )
+                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TextButton(onClick = { selectedModuleId = null }) {
+                        Text("Back to Modules")
+                    }
+                }
+            }
         }
     }
 }
@@ -269,6 +417,7 @@ fun StyleSelector(
 @Composable
 fun TimerDisplay(
     uiState: StudyNowUiState,
+    selectedTheme: com.iu.studytracker.service.TimerTheme,
     modifier: Modifier = Modifier
 ) {
     val minutes = uiState.timeRemainingSeconds / 60
@@ -277,10 +426,10 @@ fun TimerDisplay(
 
     val progress = when (uiState.timerState) {
         TimerState.FOCUSING, TimerState.PAUSED, TimerState.IDLE -> {
-            1f - (uiState.timeRemainingSeconds.toFloat() / (uiState.selectedStyle.focusMinutes * 60f))
+            1f - (uiState.timeRemainingSeconds.toFloat() / (uiState.currentFocusMinutes * 60f))
         }
         TimerState.BREAK -> {
-            1f - (uiState.timeRemainingSeconds.toFloat() / (uiState.selectedStyle.breakMinutes * 60f))
+            1f - (uiState.timeRemainingSeconds.toFloat() / (uiState.currentBreakMinutes * 60f))
         }
         TimerState.FINISHED -> 1f
     }
@@ -302,46 +451,60 @@ fun TimerDisplay(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
-        // Outer glowing ring
-        Box(
-            modifier = Modifier
-                .size(320.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            ringColor.copy(alpha = 0.1f),
-                            Color.Transparent
+        if (selectedTheme == com.iu.studytracker.service.TimerTheme.FLIP_CLOCK) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = stateText,
+                    color = ringColor,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                com.iu.studytracker.ui.screen.focus.FlipClockTimer(timeRemainingSeconds = uiState.timeRemainingSeconds)
+            }
+        } else {
+            // Outer glowing ring
+            Box(
+                modifier = Modifier
+                    .size(320.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                ringColor.copy(alpha = 0.1f),
+                                Color.Transparent
+                            )
                         )
                     )
-                )
-        )
-        
-        // Timer Circle
-        CircularProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.size(260.dp),
-            color = ringColor,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            strokeWidth = 8.dp,
-            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-        )
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = stateText,
+            )
+            
+            // Timer Circle
+            CircularProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.size(260.dp),
                 color = ringColor,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
+                trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                strokeWidth = 8.dp,
+                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = timeString,
-                color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.displayLarge,
-                fontWeight = FontWeight.ExtraBold
-            )
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = stateText,
+                    color = ringColor,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = timeString,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.displayLarge,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
         }
     }
 }
@@ -391,6 +554,101 @@ fun TimerControls(
                     contentDescription = "Stop",
                     modifier = Modifier.size(28.dp)
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun RescheduleDialog(
+    onDismiss: () -> Unit,
+    onSave: (Int, String, String) -> Unit
+) {
+    var selectedDay by remember { mutableStateOf(1) } // Monday
+    var selectedCategory by remember { mutableStateOf("MORNING") }
+    
+    val timeSlots = listOf(
+        Triple("MORNING", "Morning", "08:00 AM"),
+        Triple("NOON", "Noon", "12:00 PM"),
+        Triple("NIGHT", "Night", "06:00 PM")
+    )
+    val weekdays = listOf(
+        1 to "Monday", 2 to "Tuesday", 3 to "Wednesday", 4 to "Thursday",
+        5 to "Friday", 6 to "Saturday", 7 to "Sunday"
+    )
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp).fillMaxWidth()
+            ) {
+                Text(
+                    text = "Reschedule Unit",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("Select Day", style = MaterialTheme.typography.labelSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    weekdays.forEach { (index, name) ->
+                        val isSelected = selectedDay == index
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { selectedDay = index }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(name.take(3), color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("Select Time Slot", style = MaterialTheme.typography.labelSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    timeSlots.forEach { (cat, label, time) ->
+                        val isSelected = selectedCategory == cat
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { selectedCategory = cat }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(label, color = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { 
+                        val time = timeSlots.find { it.first == selectedCategory }?.third ?: "08:00 AM"
+                        onSave(selectedDay, time, selectedCategory)
+                    }) { 
+                        Text("Save") 
+                    }
+                }
             }
         }
     }

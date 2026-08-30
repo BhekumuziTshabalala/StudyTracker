@@ -145,6 +145,8 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+
+
             val reminderEnabled by viewModel.reminderEnabled.collectAsState()
             val reminderHour by viewModel.reminderHour.collectAsState()
             val reminderMinute by viewModel.reminderMinute.collectAsState()

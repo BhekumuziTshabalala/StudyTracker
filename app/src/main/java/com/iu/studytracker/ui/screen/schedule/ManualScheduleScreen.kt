@@ -118,25 +118,68 @@ fun ManualScheduleScreen(
                             .padding(horizontal = 20.dp),
                         contentPadding = PaddingValues(bottom = 120.dp)
                     ) {
-                        state.modules.forEach { module ->
+                        WEEKDAYS.forEach { (dayIndex, dayName) ->
+                            val dayTopics = state.topicsByDay[dayIndex] ?: emptyList()
+                            
                             item {
                                 Spacer(modifier = Modifier.height(24.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = dayName,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    if (dayTopics.isNotEmpty()) {
+                                        Text("${dayTopics.size} Units", style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+
+                            if (dayTopics.isEmpty()) {
+                                item {
+                                    Text("Free day", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            } else {
+                                items(dayTopics) { topic ->
+                                    val module = state.modules.find { it.id == topic.curriculumModuleId }
+                                    TopicScheduleCard(
+                                        topic = topic,
+                                        moduleName = module?.name ?: "Unknown Module",
+                                        onScheduleChange = { newDay, newTime, newCategory ->
+                                            viewModel.updateTopicSchedule(topic.id, newDay, newTime, newCategory)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Unscheduled topics if any
+                        val unscheduled = state.topicsByDay[-1] ?: emptyList()
+                        if (unscheduled.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(32.dp))
                                 Text(
-                                    text = module.name,
+                                    text = "Unscheduled Units",
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.padding(bottom = 12.dp)
                                 )
                             }
-
-                            val topics = state.topics.filter { it.curriculumModuleId == module.id }
-                            items(topics) { topic ->
+                            items(unscheduled) { topic ->
+                                val module = state.modules.find { it.id == topic.curriculumModuleId }
                                 TopicScheduleCard(
                                     topic = topic,
-                                    onDaySelected = { day ->
-                                        // If selecting the same day, un-schedule it
-                                        val newDay = if (topic.scheduledDay == day) null else day
-                                        viewModel.updateTopicDay(topic.id, newDay)
+                                    moduleName = module?.name ?: "Unknown Module",
+                                    onScheduleChange = { newDay, newTime, newCategory ->
+                                        viewModel.updateTopicSchedule(topic.id, newDay, newTime, newCategory)
                                     }
                                 )
                             }
@@ -174,25 +217,41 @@ fun ManualScheduleScreen(
     }
 }
 
+val TIME_SLOTS = listOf(
+    Triple("MORNING", "Morning", "08:00 AM"),
+    Triple("NOON", "Noon", "12:00 PM"),
+    Triple("NIGHT", "Night", "06:00 PM")
+)
+
 @Composable
 fun TopicScheduleCard(
     topic: CurriculumTopic,
-    onDaySelected: (Int) -> Unit
+    moduleName: String,
+    onScheduleChange: (Int?, String?, String?) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(bottom = 12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
+                text = moduleName,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
                 text = topic.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text("Select Day", style = MaterialTheme.typography.labelSmall)
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -203,21 +262,62 @@ fun TopicScheduleCard(
                     val isSelected = topic.scheduledDay == dayIndex
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(
                                 if (isSelected) MaterialTheme.colorScheme.primary 
                                 else MaterialTheme.colorScheme.surface
                             )
-                            .clickable { onDaySelected(dayIndex) }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                            .clickable { onScheduleChange(if (isSelected) null else dayIndex, topic.scheduledTime, topic.timeSlotCategory) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = dayName,
+                            text = dayName.take(3),
                             style = MaterialTheme.typography.labelMedium,
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary 
                                     else MaterialTheme.colorScheme.onSurface
                         )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Select Time Slot", style = MaterialTheme.typography.labelSmall)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TIME_SLOTS.forEach { (category, label, time) ->
+                    val isSelected = topic.timeSlotCategory == category
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.secondary 
+                                else MaterialTheme.colorScheme.surface
+                            )
+                            .clickable { 
+                                onScheduleChange(topic.scheduledDay, if (isSelected) null else time, if (isSelected) null else category) 
+                            }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isSelected) MaterialTheme.colorScheme.onSecondary 
+                                        else MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = time,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isSelected) MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f) 
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 }
             }
