@@ -46,14 +46,17 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
+      - name: Compute APK filename
+        run: echo "APK_FILENAME=StudyTracker-${GITHUB_REF_NAME//\//-}.apk" >> "$GITHUB_ENV"
+
       - name: Rename APK
-        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/StudyTracker-${{ github.ref_name }}.apk
+        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/${APK_FILENAME}
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StudyTracker-${{ github.ref_name }}
-          path: app/build/outputs/apk/debug/StudyTracker-${{ github.ref_name }}.apk
+          name: ${{ env.APK_FILENAME }}
+          path: app/build/outputs/apk/debug/${{ env.APK_FILENAME }}
           if-no-files-found: error
           retention-days: 30
 
@@ -61,7 +64,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/debug/StudyTracker-${{ github.ref_name }}.apk
+          files: app/build/outputs/apk/debug/${{ env.APK_FILENAME }}
           generate_release_notes: true
           draft: false
           prerelease: false
