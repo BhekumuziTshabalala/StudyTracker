@@ -70,14 +70,22 @@ class FirebaseSyncManager(
             ) {
                 override fun onInvalidated(tables: Set<String>) {
                     syncScope.launch {
-                        startSync()
+                        try {
+                            startSync()
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Auto-sync failed", e)
+                        }
                     }
                 }
             })
 
             // Run initial sync
             syncScope.launch {
-                startSync()
+                try {
+                    startSync()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Initial sync failed", e)
+                }
             }
 
         } catch (e: Exception) {
@@ -146,7 +154,11 @@ class FirebaseSyncManager(
             db = tempDb
             
             syncScope.launch {
-                startSync()
+                try {
+                    startSync()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Link sync failed", e)
+                }
             }
             
             Result.success(Unit)
@@ -180,7 +192,28 @@ class FirebaseSyncManager(
             syncTable("month_plans", com.iu.studytracker.data.database.entity.MonthPlan::class.java, database.monthPlanDao().getAllMonthPlans()) { items -> items.forEach { database.monthPlanDao().insert(it) } }
             syncTable("modules", com.iu.studytracker.data.database.entity.Module::class.java, database.moduleDao().getAllModules()) { items -> items.forEach { database.moduleDao().insert(it) } }
             syncTable("topics", com.iu.studytracker.data.database.entity.Topic::class.java, database.topicDao().getAllTopics()) { items -> items.forEach { database.topicDao().insert(it) } }
-            syncTable("tasks", com.iu.studytracker.data.database.entity.Task::class.java, database.taskDao().getAllTasks()) { items -> items.forEach { database.taskDao().insert(it) } }
+            syncTable("tasks", com.iu.studytracker.data.database.entity.Task::class.java, database.taskDao().getAllTasks()) { items -> 
+                val remaining = items.toMutableList()
+                val sortedTasks = mutableListOf<com.iu.studytracker.data.database.entity.Task>()
+                while (remaining.isNotEmpty()) {
+                    val startSize = remaining.size
+                    val it = remaining.iterator()
+                    while (it.hasNext()) {
+                        val task = it.next()
+                        // Insert if parent is not in the remaining list (meaning it's already in DB or already in sortedTasks)
+                        if (task.parentTaskId == null || !remaining.any { it.id == task.parentTaskId }) {
+                            sortedTasks.add(task)
+                            it.remove()
+                        }
+                    }
+                    if (remaining.size == startSize) {
+                        // Circular dependency, just add the rest
+                        sortedTasks.addAll(remaining)
+                        break
+                    }
+                }
+                sortedTasks.forEach { database.taskDao().insert(it) } 
+            }
             syncTable("module_tasks", com.iu.studytracker.data.database.entity.ModuleTask::class.java, database.moduleDetailsDao().getAllModuleTasks()) { items -> items.forEach { database.moduleDetailsDao().insertTask(it) } }
             syncTable("module_schedule_events", com.iu.studytracker.data.database.entity.ModuleScheduleEvent::class.java, database.moduleDetailsDao().getAllModuleScheduleEvents()) { items -> items.forEach { database.moduleDetailsDao().insertScheduleEvent(it) } }
             syncTable("task_templates", com.iu.studytracker.data.database.entity.TaskTemplate::class.java, database.taskTemplateDao().getAllTaskTemplates()) { items -> items.forEach { database.taskTemplateDao().insert(it) } }

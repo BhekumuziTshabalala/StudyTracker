@@ -14,10 +14,10 @@ data class CurriculumModule(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
 
-    val semester: Int,
-    val code: String,
-    val name: String,
-    val assessment: String,
+    val semester: Int = 0,
+    val code: String = "",
+    val name: String = "",
+    val assessment: String = "",
     val isCompleted: Boolean = false,
     val examPassed: Boolean? = null,
     val finalGrade: String? = null,

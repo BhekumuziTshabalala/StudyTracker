@@ -23,10 +23,10 @@ data class MonthPlan(
     val id: String = UUID.randomUUID().toString(),
 
     /** Calendar year (e.g. 2026) */
-    val year: Int,
+    val year: Int = 0,
 
     /** Calendar month 1–12 */
-    val month: Int,
+    val month: Int = 0,
 
     /** True once the user has entered both modules and their topics */
     val isSetupComplete: Boolean = false,

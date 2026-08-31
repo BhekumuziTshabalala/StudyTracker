@@ -27,11 +27,11 @@ enum class TaskType {
 data class ModuleTask(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
-    val curriculumModuleId: String,
-    val title: String,
-    val description: String,
-    val type: TaskType,
-    val dueDate: Long?,
+    val curriculumModuleId: String = "",
+    val title: String = "",
+    val description: String = "",
+    val type: TaskType = TaskType.GENERAL,
+    val dueDate: Long? = null,
     val isCompleted: Boolean = false,
     val updatedAt: Long = System.currentTimeMillis()
 )

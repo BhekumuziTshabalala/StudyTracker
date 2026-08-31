@@ -55,7 +55,7 @@ data class Task(
     val topicId: String? = null,
 
     /** Task title */
-    val title: String,
+    val title: String = "",
 
     /** Markdown content */
     val description: String = "",

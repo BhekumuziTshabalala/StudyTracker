@@ -30,14 +30,14 @@ data class Topic(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
 
-    /** FK → modules.id */
-    val moduleId: String,
+    /** FK -> modules.id */
+    val moduleId: String = "",
 
     /** Topic title, e.g. "Binary Search Trees" */
-    val title: String,
+    val title: String = "",
 
     /** Ordering within the module (0-based) */
-    val orderIndex: Int,
+    val orderIndex: Int = 0,
 
     /** Optional URI to a local resource (PDF) or web URL */
     val resourceUri: String? = null,

@@ -8,7 +8,7 @@ import java.util.UUID
 data class TaskTemplate(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
-    val title: String,
+    val title: String = "",
     val defaultPriority: TaskPriority = TaskPriority.MEDIUM,
     val defaultModuleId: String? = null,
     val updatedAt: Long = System.currentTimeMillis()

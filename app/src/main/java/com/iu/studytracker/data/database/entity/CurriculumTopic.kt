@@ -29,7 +29,7 @@ data class CurriculumTopic(
     /** FK -> curriculum_modules.id */
     val curriculumModuleId: String = "",
     
-    val title: String,
+    val title: String = "",
     
     /**
      * User-assigned day of week: 1=Monday, 2=Tuesday, … 7=Sunday, null=unscheduled.

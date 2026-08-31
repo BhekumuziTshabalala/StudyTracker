@@ -32,13 +32,13 @@ data class Module(
     val id: String = UUID.randomUUID().toString(),
 
     /** FK → month_plans.id */
-    val monthPlanId: String,
+    val monthPlanId: String = "",
 
     /** Display name, e.g. "Data Structures & Algorithms" */
-    val name: String,
+    val name: String = "",
 
     /** 0 = first module, 1 = second module within the month */
-    val orderIndex: Int,
+    val orderIndex: Int = 0,
     
     val updatedAt: Long = System.currentTimeMillis()
 )

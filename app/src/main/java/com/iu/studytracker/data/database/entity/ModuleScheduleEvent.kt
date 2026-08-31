@@ -29,10 +29,10 @@ enum class EventType {
 data class ModuleScheduleEvent(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
-    val curriculumModuleId: String,
-    val title: String,
-    val eventType: EventType,
-    val date: Long,
+    val curriculumModuleId: String = "",
+    val title: String = "",
+    val eventType: EventType = EventType.STUDY_BLOCK,
+    val date: Long = 0L,
     val durationMinutes: Int? = null,
     val updatedAt: Long = System.currentTimeMillis()
 )
