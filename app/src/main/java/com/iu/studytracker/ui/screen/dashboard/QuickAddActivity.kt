@@ -23,7 +23,14 @@ class QuickAddActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val repository = (applicationContext as com.iu.studytracker.StudyTrackerApp).repository
+        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
         
+        if (auth.currentUser == null) {
+            // User not signed in, can't add tasks
+            finish()
+            return
+        }
+
         setContent {
             DolphinPlannerTheme {
                 // Transparent background wrapper

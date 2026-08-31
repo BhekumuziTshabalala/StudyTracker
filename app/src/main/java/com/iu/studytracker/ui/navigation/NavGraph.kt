@@ -20,22 +20,27 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.iu.studytracker.ui.screen.calendar.CalendarScreen
 import com.iu.studytracker.ui.screen.dashboard.DashboardScreen
 import com.iu.studytracker.ui.screen.studynow.StudyNowScreen
 import com.iu.studytracker.ui.screen.setup.SetupScreen
 import com.iu.studytracker.ui.screen.curriculum.CurriculumScreen
 import com.iu.studytracker.ui.theme.OceanBlue
+import com.iu.studytracker.ui.screen.studynow.StudyNowScreen
+import kotlinx.coroutines.launch
+import com.iu.studytracker.ui.screen.login.LoginScreen
 
 @Composable
-fun StudyTrackerNavGraph() {
+fun StudyTrackerNavGraph(startDestination: String = Screen.Dashboard.route) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // Hide navigation bar/rail on Setup and ManualSchedule screens
+    // Hide navigation bar/rail on Setup, ManualSchedule, and Login screens
     val showNav = currentDestination?.route != Screen.Setup.route && 
-                  currentDestination?.route?.startsWith("manual_schedule") != true
+                  currentDestination?.route?.startsWith("manual_schedule") != true &&
+                  currentDestination?.route != Screen.Login.route
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isTablet = maxWidth >= 720.dp
@@ -99,7 +104,7 @@ fun StudyTrackerNavGraph() {
                         .weight(1f)
                         .fillMaxHeight()
                 ) {
-                    AppNavHost(navController = navController)
+                    AppNavHost(navController = navController, startDestination = startDestination)
                 }
             }
         } else {
@@ -153,7 +158,7 @@ fun StudyTrackerNavGraph() {
                         .fillMaxSize()
                         .padding(innerPadding)
                 ) {
-                    AppNavHost(navController = navController)
+                    AppNavHost(navController = navController, startDestination = startDestination)
                 }
             }
         }
@@ -163,11 +168,12 @@ fun StudyTrackerNavGraph() {
 @Composable
 private fun AppNavHost(
     navController: androidx.navigation.NavHostController,
+    startDestination: String = Screen.Dashboard.route,
     modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Dashboard.route,
+        startDestination = startDestination,
         modifier = modifier,
         enterTransition = {
             fadeIn(animationSpec = tween(350)) + slideIntoContainer(
@@ -198,6 +204,20 @@ private fun AppNavHost(
             )
         }
     ) {
+        composable(Screen.Login.route) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            LoginScreen(
+                onLoginSuccess = {
+                    val app = context.applicationContext as com.iu.studytracker.StudyTrackerApp
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        app.syncManager.initialize()
+                    }
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Screen.Dashboard.route) {
             DashboardScreen(
                 onNavigateToSetup = {
@@ -301,7 +321,12 @@ private fun AppNavHost(
 
         composable(Screen.Settings.route) {
             com.iu.studytracker.ui.screen.settings.SettingsScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onSignOut = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 

@@ -18,6 +18,7 @@ class StudyTrackerApp : Application() {
 
     val repository: StudyRepository by lazy {
         StudyRepository(
+            database = database,
             monthPlanDao = database.monthPlanDao(),
             moduleDao = database.moduleDao(),
             topicDao = database.topicDao(),

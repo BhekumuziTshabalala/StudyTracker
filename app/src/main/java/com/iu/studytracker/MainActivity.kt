@@ -60,7 +60,13 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.background
                 ) {
-                    StudyTrackerNavGraph()
+                    val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                    val startDestination = if (auth.currentUser == null) {
+                        com.iu.studytracker.ui.navigation.Screen.Login.route
+                    } else {
+                        com.iu.studytracker.ui.navigation.Screen.Dashboard.route
+                    }
+                    StudyTrackerNavGraph(startDestination = startDestination)
                 }
             }
         }

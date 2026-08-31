@@ -9,11 +9,22 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val userPreferences = (application as StudyTrackerApp).userPreferences
     private val repository = (application as StudyTrackerApp).repository
+
+    fun signOutAndClearData(onComplete: () -> Unit) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            FirebaseAuth.getInstance().signOut()
+            repository.clearAllData()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                onComplete()
+            }
+        }
+    }
 
     val themeMode: StateFlow<ThemeMode> = userPreferences.themeMode.stateIn(
         scope = viewModelScope,
@@ -52,21 +63,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = false
     )
-    val firebaseProjectId = userPreferences.firebaseProjectId.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ""
-    )
-    val firebaseAppId = userPreferences.firebaseAppId.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ""
-    )
-    val firebaseApiKey = userPreferences.firebaseApiKey.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ""
-    )
     val deviceId = userPreferences.deviceId.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -96,49 +92,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setFirebaseSyncEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferences.setFirebaseSyncEnabled(enabled)
-            // Need to initialize ID if enabling
             if (enabled) {
                 userPreferences.getOrCreateDeviceId()
+                syncManager.initialize() // re-initialize if enabled
             }
         }
     }
-
-    fun saveFirebaseConfig(projectId: String, appId: String, apiKey: String) {
-        viewModelScope.launch {
-            userPreferences.setFirebaseConfig(projectId, appId, apiKey)
-        }
-    }
-
-    private val _linkStatus = kotlinx.coroutines.flow.MutableStateFlow<LinkStatus?>(null)
-    val linkStatus: StateFlow<LinkStatus?> = _linkStatus
-
-    fun clearLinkStatus() {
-        _linkStatus.value = null
-    }
-
-    fun linkFirebase(projectId: String, appId: String, apiKey: String) {
-        viewModelScope.launch {
-            _linkStatus.value = LinkStatus.Loading
-            saveFirebaseConfig(projectId, appId, apiKey)
-            try {
-                val result = syncManager.attemptLink(projectId, appId, apiKey)
-                if (result.isSuccess) {
-                    _linkStatus.value = LinkStatus.Success
-                } else {
-                    _linkStatus.value = LinkStatus.Error(result.exceptionOrNull()?.message ?: "Unknown error")
-                }
-            } catch(e: Exception) {
-                _linkStatus.value = LinkStatus.Error(e.message ?: "Unknown error")
-            }
-        }
-    }
-
-    sealed class LinkStatus {
-        object Loading : LinkStatus()
-        object Success : LinkStatus()
-        data class Error(val message: String) : LinkStatus()
-    }
-
     val reminderEnabled = userPreferences.reminderEnabled.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

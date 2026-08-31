@@ -38,6 +38,7 @@ import java.time.format.DateTimeFormatter
  * coroutine context (typically Dispatchers.IO via viewModelScope).
  */
 class StudyRepository(
+    private val database: com.iu.studytracker.data.database.StudyTrackerDatabase,
     private val monthPlanDao: MonthPlanDao,
     private val moduleDao: ModuleDao,
     private val topicDao: TopicDao,
@@ -47,6 +48,10 @@ class StudyRepository(
     private val moduleDetailsDao: ModuleDetailsDao,
     private val taskTemplateDao: com.iu.studytracker.data.database.dao.TaskTemplateDao
 ) {
+
+    suspend fun clearAllData() {
+        database.clearAllTables()
+    }
 
     // ── Module Details (Tasks & Events) ─────────────────────────
 

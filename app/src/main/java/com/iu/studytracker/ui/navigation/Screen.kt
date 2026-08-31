@@ -19,6 +19,7 @@ sealed class Screen(
     val icon: ImageVector? = null
 ) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Dashboard)
+    object Login : Screen("login", "Login")
     object Setup : Screen("setup", "Monthly Setup")
     object ManualSchedule : Screen("manual_schedule/{moduleIds}", "Plan My Week") {
         fun createRoute(moduleIds: List<String>) = "manual_schedule/${moduleIds.joinToString(",")}"

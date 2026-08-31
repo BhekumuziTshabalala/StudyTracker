@@ -28,29 +28,11 @@ import com.iu.studytracker.data.repository.ThemeMode
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onSignOut: () -> Unit,
     viewModel: SettingsViewModel = viewModel()
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val linkStatus by viewModel.linkStatus.collectAsState()
-    val firebaseProjectId by viewModel.firebaseProjectId.collectAsState()
-    var showCredentialsForm by remember { mutableStateOf(firebaseProjectId.isNullOrEmpty()) }
-
-    LaunchedEffect(linkStatus) {
-        when (val status = linkStatus) {
-            is SettingsViewModel.LinkStatus.Success -> {
-                snackbarHostState.showSnackbar("Firebase linked successfully!")
-                showCredentialsForm = false
-                viewModel.clearLinkStatus()
-            }
-            is SettingsViewModel.LinkStatus.Error -> {
-                snackbarHostState.showSnackbar("Link failed: ${status.message}")
-                viewModel.clearLinkStatus()
-            }
-            else -> {}
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,47 +57,10 @@ fun SettingsScreen(
         var totalEcts by remember(degreePlan) { mutableStateOf(degreePlan?.totalCreditsRequired?.toString() ?: "180") }
 
         val isFirebaseSyncEnabled by viewModel.isFirebaseSyncEnabled.collectAsState()
-        val firebaseAppId by viewModel.firebaseAppId.collectAsState()
-        val firebaseApiKey by viewModel.firebaseApiKey.collectAsState()
         val deviceId by viewModel.deviceId.collectAsState()
         val linkedDevices by viewModel.linkedDevices.collectAsState()
 
-        var editProjectId by remember(firebaseProjectId) { mutableStateOf(firebaseProjectId ?: "") }
-        var editAppId by remember(firebaseAppId) { mutableStateOf(firebaseAppId ?: "") }
-        var editApiKey by remember(firebaseApiKey) { mutableStateOf(firebaseApiKey ?: "") }
-
         var showDegreeFields by remember { mutableStateOf(false) }
-        var showQrDialog by remember { mutableStateOf(false) }
-
-        if (showQrDialog) {
-            val qrData = """{"projectId":"$firebaseProjectId","appId":"$firebaseAppId","apiKey":"$firebaseApiKey"}"""
-            val qrBitmap = remember(qrData) { generateQrCode(qrData) }
-            
-            AlertDialog(
-                onDismissRequest = { showQrDialog = false },
-                title = { Text("Link Web App") },
-                text = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                        Text("Scan this QR Code from your Dolphin web app's Settings page.", style = MaterialTheme.typography.bodyMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                        Spacer(Modifier.height(16.dp))
-                        if (qrBitmap != null) {
-                            androidx.compose.foundation.Image(
-                                bitmap = qrBitmap,
-                                contentDescription = "QR Code",
-                                modifier = Modifier.size(200.dp)
-                            )
-                        } else {
-                            Text("Failed to generate QR Code")
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showQrDialog = false }) {
-                        Text("Close")
-                    }
-                }
-            )
-        }
 
         Column(
             modifier = Modifier
@@ -300,6 +245,39 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Account
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            val currentUser = auth.currentUser
+            SettingsGroupLabel("Account")
+            SettingsGroup {
+                if (currentUser != null) {
+                    SettingsInfoRow(
+                        icon = Icons.Default.AccountCircle,
+                        title = "Signed In As",
+                        value = currentUser.email ?: "Unknown"
+                    )
+                    SettingsDivider()
+                    SettingsRow(
+                        icon = Icons.Default.Logout,
+                        title = "Sign Out",
+                        subtitle = "Sign out of your account",
+                        onClick = {
+                            viewModel.signOutAndClearData {
+                                onSignOut()
+                            }
+                        }
+                    )
+                } else {
+                    SettingsInfoRow(
+                        icon = Icons.Default.AccountCircle,
+                        title = "Not Signed In",
+                        value = ""
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Cloud Sync
             SettingsGroupLabel("Cloud Sync")
             SettingsGroup {
@@ -319,107 +297,18 @@ fun SettingsScreen(
                         value = deviceId.take(12) + "..."
                     )
                     SettingsDivider()
-
-                    if (showCredentialsForm) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                            Text(
-                                "Firebase Credentials",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
-                            OutlinedTextField(
-                                value = editProjectId,
-                                onValueChange = { editProjectId = it },
-                                label = { Text("Project ID") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = editAppId,
-                                onValueChange = { editAppId = it },
-                                label = { Text("App ID") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = editApiKey,
-                                onValueChange = { editApiKey = it },
-                                label = { Text("Web API Key") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                visualTransformation = PasswordVisualTransformation(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                "Connect your own Firebase project to sync data across devices.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (editProjectId.isNotEmpty() && editAppId.isNotEmpty() && editApiKey.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Button(
-                                    onClick = { viewModel.linkFirebase(editProjectId, editAppId, editApiKey) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = linkStatus !is SettingsViewModel.LinkStatus.Loading,
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    if (linkStatus is SettingsViewModel.LinkStatus.Loading) {
-                                        CircularProgressIndicator(Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
-                                    } else {
-                                        Icon(Icons.Default.Link, null, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Link Firebase")
-                                    }
-                                }
-                            }
+                    SettingsRow(
+                        icon = Icons.Default.Devices,
+                        title = "Linked Devices",
+                        subtitle = if (linkedDevices.isEmpty()) "No devices synced yet" else "${linkedDevices.size} device(s)",
+                        onClick = { viewModel.refreshDevices() },
+                        trailing = {
+                            Icon(Icons.Default.Refresh, "Refresh",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp))
                         }
-                    } else {
-                        SettingsRow(
-                            icon = Icons.Default.CheckCircle,
-                            title = "Firebase Linked",
-                            subtitle = "Project: $firebaseProjectId",
-                            onClick = { showCredentialsForm = true },
-                            trailing = {
-                                Text(
-                                    "Edit",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        )
-                    }
+                    )
 
-                    if (!firebaseProjectId.isNullOrEmpty() && !firebaseAppId.isNullOrEmpty() && !firebaseApiKey.isNullOrEmpty()) {
-                        SettingsDivider()
-                        SettingsRow(
-                            icon = Icons.Default.QrCode,
-                            title = "Link Web App",
-                            subtitle = "Show QR code to scan from browser",
-                            onClick = { showQrDialog = true },
-                            trailing = {
-                                Icon(Icons.Default.QrCode, "QR Code",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp))
-                            }
-                        )
-                        SettingsDivider()
-                        SettingsRow(
-                            icon = Icons.Default.Devices,
-                            title = "Linked Devices",
-                            subtitle = if (linkedDevices.isEmpty()) "No devices synced yet" else "${linkedDevices.size} device(s)",
-                            onClick = { viewModel.refreshDevices() },
-                            trailing = {
-                                Icon(Icons.Default.Refresh, "Refresh",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp))
-                            }
-                        )
                         if (linkedDevices.isNotEmpty()) {
                             Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp)) {
                                 linkedDevices.forEach { deviceData ->
@@ -465,7 +354,6 @@ fun SettingsScreen(
                         }
                     }
                 }
-            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

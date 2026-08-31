@@ -1,8 +1,7 @@
 package com.iu.studytracker.ui.screen.dashboard
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -57,13 +56,17 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
-                    val rotation by animateFloatAsState(
-                        targetValue = if (uiState.isSyncing) 360f else 0f,
-                        animationSpec = if (uiState.isSyncing) androidx.compose.animation.core.infiniteRepeatable(
-                            animation = androidx.compose.animation.core.tween(1000, easing = androidx.compose.animation.core.LinearEasing)
-                        ) else androidx.compose.animation.core.tween(0),
+                    val transition = rememberInfiniteTransition(label = "syncRotation")
+                    val angle by transition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 360f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1000, easing = LinearEasing),
+                            repeatMode = RepeatMode.Restart
+                        ),
                         label = "syncRotation"
                     )
+                    val rotation = if (uiState.isSyncing) angle else 0f
                     IconButton(onClick = { viewModel.triggerManualSync() }) {
                         Icon(
                             Icons.Default.Sync, 
