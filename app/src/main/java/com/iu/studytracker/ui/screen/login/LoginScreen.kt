@@ -143,13 +143,33 @@ private suspend fun signInWithGoogle(context: Context): Boolean {
             authResult.user != null
         } else {
             Log.e("LoginScreen", "Unexpected credential type")
-            false
+            fallbackToWebSignIn(context)
         }
     } catch (e: GetCredentialException) {
-        Log.e("LoginScreen", "GetCredentialException", e)
-        false
+        Log.e("LoginScreen", "GetCredentialException, falling back to web flow", e)
+        fallbackToWebSignIn(context)
     } catch (e: Exception) {
-        Log.e("LoginScreen", "Exception", e)
+        Log.e("LoginScreen", "Exception, falling back to web flow", e)
+        fallbackToWebSignIn(context)
+    }
+}
+
+private tailrec fun Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+private suspend fun fallbackToWebSignIn(context: Context): Boolean {
+    return try {
+        val activity = context.findActivity() ?: return false
+        val provider = com.google.firebase.auth.OAuthProvider.newBuilder("google.com")
+        val authResult = FirebaseAuth.getInstance()
+            .startActivityForSignInWithProvider(activity, provider.build())
+            .await()
+        authResult.user != null
+    } catch (e: Exception) {
+        Log.e("LoginScreen", "Fallback Web Sign-In Error", e)
         false
     }
 }
