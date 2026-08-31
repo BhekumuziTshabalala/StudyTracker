@@ -99,6 +99,32 @@ fun LoginScreen(
                 ) {
                     Text("Sign in with Google")
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                OutlinedButton(
+                    onClick = {
+                        isLoading = true
+                        coroutineScope.launch {
+                            try {
+                                val result = fallbackToWebSignIn(context)
+                                if (result) {
+                                    onLoginSuccess()
+                                } else {
+                                    Toast.makeText(context, "Web Sign-in failed", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Log.e("LoginScreen", "Web Sign-In Error", e)
+                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("Sign in via Web (For Huawei/No GMS)")
+                }
             }
         }
     }
