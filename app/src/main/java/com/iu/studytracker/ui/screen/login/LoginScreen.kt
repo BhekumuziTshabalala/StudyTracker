@@ -187,15 +187,10 @@ private tailrec fun Context.findActivity(): android.app.Activity? = when (this) 
 }
 
 private suspend fun fallbackToWebSignIn(context: Context): Boolean {
-    return try {
-        val activity = context.findActivity() ?: return false
-        val provider = com.google.firebase.auth.OAuthProvider.newBuilder("google.com")
-        val authResult = FirebaseAuth.getInstance()
-            .startActivityForSignInWithProvider(activity, provider.build())
-            .await()
-        authResult.user != null
-    } catch (e: Exception) {
-        Log.e("LoginScreen", "Fallback Web Sign-In Error", e)
-        false
-    }
+    val activity = context.findActivity() ?: throw IllegalStateException("Activity not found")
+    val provider = com.google.firebase.auth.OAuthProvider.newBuilder("google.com")
+    val authResult = FirebaseAuth.getInstance()
+        .startActivityForSignInWithProvider(activity, provider.build())
+        .await()
+    return authResult.user != null
 }
