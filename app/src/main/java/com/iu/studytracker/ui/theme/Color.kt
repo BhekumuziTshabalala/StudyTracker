@@ -29,6 +29,10 @@ val LightBorder = Color(0xFFBFDBEE)
 val LightTextPrimary = Color(0xFF0A1628)
 val LightTextSecondary = Color(0xFF4A6080)
 
+// ── Glassmorphism surfaces ───────────────────────────────────
+val GlassSurface = Color(0x33FFFFFF)
+val GlassSurfaceDark = Color(0x33000000)
+
 // ── Module identity colours ──────────────────────────────────
 val Module1Color = Color(0xFF0284C7)  // Ocean Blue
 val Module2Color = Color(0xFF0D9488)  // Seafoam Green

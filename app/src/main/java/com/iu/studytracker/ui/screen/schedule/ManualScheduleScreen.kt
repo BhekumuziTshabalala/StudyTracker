@@ -260,22 +260,26 @@ fun TopicScheduleCard(
             ) {
                 WEEKDAYS.forEach { (dayIndex, dayName) ->
                     val isSelected = session.scheduledDay == dayIndex
+                    val bgColor by androidx.compose.animation.animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                        label = "dayBgColor"
+                    )
+                    val textColor by androidx.compose.animation.animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                        label = "dayTextColor"
+                    )
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary 
-                                else MaterialTheme.colorScheme.surface
-                            )
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(bgColor)
                             .clickable { onScheduleChange(if (isSelected) null else dayIndex, session.scheduledTime, session.timeSlotCategory) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = dayName.take(3),
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary 
-                                    else MaterialTheme.colorScheme.onSurface
+                            color = textColor
                         )
                     }
                 }
@@ -290,32 +294,40 @@ fun TopicScheduleCard(
             ) {
                 TIME_SLOTS.forEach { (category, label, time) ->
                     val isSelected = session.timeSlotCategory == category
+                    val bgColor by androidx.compose.animation.animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surface,
+                        label = "timeBgColor"
+                    )
+                    val textColor by androidx.compose.animation.animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurface,
+                        label = "timeTextColor"
+                    )
+                    val subTextColor by androidx.compose.animation.animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        label = "timeSubTextColor"
+                    )
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.secondary 
-                                else MaterialTheme.colorScheme.surface
-                            )
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(bgColor)
                             .clickable { 
                                 onScheduleChange(session.scheduledDay, if (isSelected) null else time, if (isSelected) null else category) 
                             }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (isSelected) MaterialTheme.colorScheme.onSecondary 
-                                        else MaterialTheme.colorScheme.onSurface
+                                color = textColor
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = time,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (isSelected) MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f) 
-                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                color = subTextColor
                             )
                         }
                     }

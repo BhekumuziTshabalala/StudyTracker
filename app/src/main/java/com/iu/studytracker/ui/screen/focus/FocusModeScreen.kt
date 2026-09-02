@@ -111,6 +111,20 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
+        val transition = rememberInfiniteTransition(label = "breathe")
+        val glowRadius by transition.animateFloat(
+            initialValue = 700f,
+            targetValue = 950f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2500, easing = EaseInOutSine),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "glowRadius"
+        )
+        
+        val currentRadius = if (isRunning) glowRadius else 800f
+        val currentAlpha = if (isRunning) 0.12f else 0.06f
+
         // Subtle radial background glow
         Box(
             modifier = Modifier
@@ -119,10 +133,10 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Module1Color.copy(alpha = 0.06f),
+                            Module1Color.copy(alpha = currentAlpha),
                             Color.Transparent
                         ),
-                        radius = 800f
+                        radius = currentRadius
                     )
                 )
         ) {
@@ -207,13 +221,13 @@ fun FocusModeScreen(onNavigateBack: () -> Unit) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
                                 val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
                                 Canvas(modifier = Modifier.size(260.dp)) {
-                                    drawCircle(color = surfaceVariantColor, style = Stroke(width = 28.dp.toPx()))
+                                    drawCircle(color = surfaceVariantColor, style = Stroke(width = 36.dp.toPx()))
                                     drawArc(
                                         brush = Brush.sweepGradient(listOf(GradientStart, GradientEnd, GradientStart)),
                                         startAngle = -90f,
                                         sweepAngle = 360f * animatedProgress,
                                         useCenter = false,
-                                        style = Stroke(width = 28.dp.toPx(), cap = StrokeCap.Round)
+                                        style = Stroke(width = 36.dp.toPx(), cap = StrokeCap.Round)
                                     )
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

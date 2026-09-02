@@ -17,12 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
@@ -433,15 +435,15 @@ fun DashboardProgressSection(uiState: DashboardUiState) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(12.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .height(20.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(animatedProgress)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(GradientStart, GradientEnd)
@@ -495,15 +497,15 @@ fun DashboardProgressSection(uiState: DashboardUiState) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(12.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .height(20.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(animatedCurrProgress)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(OceanBlueLight, SeafoamGreenLight)
@@ -862,18 +864,33 @@ fun TaskCard(
             && task.task.scheduledDate < todayDateString
             && !task.task.isCompleted
 
-    val cardBackground = when {
-        task.task.isCompleted -> MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-        else -> MaterialTheme.colorScheme.surface
-    }
+    val cardBackgroundColor by animateColorAsState(
+        targetValue = when {
+            task.task.isCompleted -> MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+            else -> MaterialTheme.colorScheme.surface
+        },
+        animationSpec = tween(300)
+    )
+
+    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = tween(150),
+        label = "scale"
+    )
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().scale(scale),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBackground),
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         elevation = CardDefaults.cardElevation(defaultElevation = if (task.task.isCompleted) 0.dp else 2.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().clickable(
+            interactionSource = interactionSource,
+            indication = androidx.compose.foundation.LocalIndication.current,
+            onClick = { onToggle() }
+        )) {
             // Left colour strip
             Box(
                 modifier = Modifier
@@ -888,7 +905,6 @@ fun TaskCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onToggle() }
                         .padding(start = 12.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
