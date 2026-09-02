@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "961656979688-u7c7dhtoiq6f09uk7puucbpqg559t5mn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nirvanaspace.dolphin",
+            "certificate_hash": "afd2002352e2dd497cd5aaa247c0a2549f7e8cf2"
+          }
+        },
+        {
           "client_id": "961656979688-rdf8v3rmtr053s4onid776deqe02apeo.apps.googleusercontent.com",
           "client_type": 3
         }

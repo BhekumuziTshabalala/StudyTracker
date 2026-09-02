@@ -90,6 +90,9 @@ dependencies {
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.9.2")
+    
+    // Browser for Firebase Auth Web fallback (Custom Tabs)
+    implementation("androidx.browser:browser:1.8.0")
 
     // Room
     val roomVersion = "2.8.4"
