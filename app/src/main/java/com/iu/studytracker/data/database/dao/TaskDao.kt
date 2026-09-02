@@ -59,34 +59,36 @@ interface TaskDao {
     @Transaction
     @Query("""
         SELECT t.*, 
-               tp.title AS topicTitle, 
-               tp.orderIndex AS topicOrderIndex,
-               m.name AS moduleName,
+               COALESCE(tp.title, t.title) AS topicTitle, 
+               COALESCE(tp.orderIndex, t.unitNumber, 0) AS topicOrderIndex,
+               COALESCE(m.name, m2.name, '') AS moduleName,
                '' AS moduleCode,
-               m.orderIndex AS moduleOrderIndex,
-               m.id AS moduleId,
+               COALESCE(m.orderIndex, m2.orderIndex, 0) AS moduleOrderIndex,
+               COALESCE(m.id, m2.id) AS associatedModuleId,
                tp.resourceUri AS resourceUri
         FROM tasks t
         LEFT JOIN topics tp ON t.topicId = tp.id
         LEFT JOIN modules m ON tp.moduleId = m.id
+        LEFT JOIN modules m2 ON t.moduleId = m2.id
         WHERE t.scheduledDate = :date AND t.isDeleted = 0
-        ORDER BY m.orderIndex ASC, tp.orderIndex ASC
+        ORDER BY moduleOrderIndex ASC, topicOrderIndex ASC
     """)
     fun observeTasksWithDetailsForDate(date: String): Flow<List<TaskWithDetails>>
 
     @Transaction
     @Query("""
         SELECT t.*, 
-               tp.title AS topicTitle, 
-               tp.orderIndex AS topicOrderIndex,
-               m.name AS moduleName,
+               COALESCE(tp.title, t.title) AS topicTitle, 
+               COALESCE(tp.orderIndex, t.unitNumber, 0) AS topicOrderIndex,
+               COALESCE(m.name, m2.name, '') AS moduleName,
                '' AS moduleCode,
-               m.orderIndex AS moduleOrderIndex,
-               m.id AS moduleId,
+               COALESCE(m.orderIndex, m2.orderIndex, 0) AS moduleOrderIndex,
+               COALESCE(m.id, m2.id) AS associatedModuleId,
                tp.resourceUri AS resourceUri
         FROM tasks t
         LEFT JOIN topics tp ON t.topicId = tp.id
         LEFT JOIN modules m ON tp.moduleId = m.id
+        LEFT JOIN modules m2 ON t.moduleId = m2.id
         WHERE t.status != 'DONE' AND t.isDeleted = 0 AND t.parentTaskId IS NULL
         ORDER BY t.priority DESC, t.scheduledDate ASC
     """)
@@ -95,37 +97,38 @@ interface TaskDao {
     @Transaction
     @Query("""
         SELECT t.*, 
-               tp.title AS topicTitle, 
-               tp.orderIndex AS topicOrderIndex,
-               m.name AS moduleName,
+               COALESCE(tp.title, t.title) AS topicTitle, 
+               COALESCE(tp.orderIndex, t.unitNumber, 0) AS topicOrderIndex,
+               COALESCE(m.name, m2.name, '') AS moduleName,
                '' AS moduleCode,
-               m.orderIndex AS moduleOrderIndex,
-               m.id AS moduleId,
+               COALESCE(m.orderIndex, m2.orderIndex, 0) AS moduleOrderIndex,
+               COALESCE(m.id, m2.id) AS associatedModuleId,
                tp.resourceUri AS resourceUri
         FROM tasks t
         LEFT JOIN topics tp ON t.topicId = tp.id
         LEFT JOIN modules m ON tp.moduleId = m.id
+        LEFT JOIN modules m2 ON t.moduleId = m2.id
         WHERE t.parentTaskId = :parentId AND t.isDeleted = 0
         ORDER BY t.status ASC, t.scheduledDate ASC
     """)
     fun observeSubTasksWithDetails(parentId: String): Flow<List<TaskWithDetails>>
 
-
     @Transaction
     @Query("""
         SELECT t.*, 
-               tp.title AS topicTitle, 
-               tp.orderIndex AS topicOrderIndex,
-               m.name AS moduleName,
+               COALESCE(tp.title, t.title) AS topicTitle, 
+               COALESCE(tp.orderIndex, t.unitNumber, 0) AS topicOrderIndex,
+               COALESCE(m.name, m2.name, '') AS moduleName,
                '' AS moduleCode,
-               m.orderIndex AS moduleOrderIndex,
-               m.id AS moduleId,
+               COALESCE(m.orderIndex, m2.orderIndex, 0) AS moduleOrderIndex,
+               COALESCE(m.id, m2.id) AS associatedModuleId,
                tp.resourceUri AS resourceUri
         FROM tasks t
         LEFT JOIN topics tp ON t.topicId = tp.id
         LEFT JOIN modules m ON tp.moduleId = m.id
+        LEFT JOIN modules m2 ON t.moduleId = m2.id
         WHERE t.monthPlanId = :monthPlanId AND t.isDeleted = 0
-        ORDER BY m.orderIndex ASC, tp.orderIndex ASC
+        ORDER BY moduleOrderIndex ASC, topicOrderIndex ASC
     """)
     fun observeAllTasksWithDetailsForMonth(monthPlanId: String): Flow<List<TaskWithDetails>>
 

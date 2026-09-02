@@ -637,7 +637,7 @@ fun DashboardTaskList(
         Spacer(modifier = Modifier.height(4.dp))
     }
 
-    if (uiState.totalCount == 0 && uiState.manualTopics.isEmpty() && uiState.isSetupComplete && uiState.overdueTasks.isEmpty()) {
+    if (uiState.totalCount == 0 && uiState.manualSessions.isEmpty() && uiState.isSetupComplete && uiState.overdueTasks.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -667,8 +667,8 @@ fun DashboardTaskList(
                 )
             }
             
-            uiState.manualTopics.forEach { topic ->
-                ManualTopicCard(topic = topic)
+            uiState.manualSessions.forEach { topic ->
+                ManualSessionCard(session = topic)
             }
             Spacer(modifier = Modifier.height(if (uiState.isSetupComplete) 100.dp else 16.dp))
         }
@@ -676,7 +676,7 @@ fun DashboardTaskList(
 }
 
 @Composable
-fun ManualTopicCard(topic: com.iu.studytracker.data.database.entity.CurriculumTopic) {
+fun ManualSessionCard(session: com.iu.studytracker.data.database.entity.StudySession) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -695,7 +695,7 @@ fun ManualTopicCard(topic: com.iu.studytracker.data.database.entity.CurriculumTo
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(
-                    text = topic.title,
+                    text = "Unit ${session.unitNumber}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface

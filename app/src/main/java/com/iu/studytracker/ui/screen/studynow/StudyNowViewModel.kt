@@ -30,12 +30,12 @@ data class StudyNowUiState(
     val timeRemainingSeconds: Int = PomodoroStyle.CLASSIC.focusMinutes * 60,
     val totalFocusTimeSpentSeconds: Int = 0,
     val modules: List<com.iu.studytracker.data.database.entity.CurriculumModule> = emptyList(),
-    val topics: List<com.iu.studytracker.data.database.entity.CurriculumTopic> = emptyList(),
-    val showTopicSelectionDialog: Boolean = false,
+    val sessions: List<com.iu.studytracker.data.database.entity.StudySession> = emptyList(),
+    val showsessionselectionDialog: Boolean = false,
     val showRescheduleDialog: Boolean = false,
     val showPostSessionDialog: Boolean = false,
     val selectedModuleId: String? = null,
-    val selectedTopicId: String? = null
+    val selectedsessionId: String? = null
 ) {
     val currentFocusMinutes: Int
         get() = if (selectedStyle == PomodoroStyle.CUSTOM) customFocusMinutes else selectedStyle.focusMinutes
@@ -56,8 +56,8 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
             }
         }
         viewModelScope.launch {
-            repository.observeAllCurriculumTopics().collect { topics ->
-                _uiState.update { it.copy(topics = topics) }
+            repository.observeAllStudySessions().collect { sessions ->
+                _uiState.update { it.copy(sessions = sessions) }
             }
         }
         
@@ -117,8 +117,8 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
         val currentState = _uiState.value.timerState
         when (currentState) {
             TimerState.IDLE -> {
-                if (_uiState.value.selectedTopicId == null) {
-                    _uiState.update { it.copy(showTopicSelectionDialog = true) }
+                if (_uiState.value.selectedsessionId == null) {
+                    _uiState.update { it.copy(showsessionselectionDialog = true) }
                 } else {
                     startFocusTimer()
                 }
@@ -129,19 +129,19 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
         }
     }
     
-    fun onTopicSelected(moduleId: String, topicId: String) {
+    fun onsessionselected(moduleId: String, sessionId: String) {
         _uiState.update { 
             it.copy(
                 selectedModuleId = moduleId,
-                selectedTopicId = topicId,
-                showTopicSelectionDialog = false
+                selectedsessionId = sessionId,
+                showsessionselectionDialog = false
             )
         }
         startFocusTimer()
     }
     
-    fun onDismissTopicSelection() {
-        _uiState.update { it.copy(showTopicSelectionDialog = false) }
+    fun onDismisssessionselection() {
+        _uiState.update { it.copy(showsessionselectionDialog = false) }
     }
 
     private fun resumeTimer() {
@@ -152,11 +152,11 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun startFocusTimer() {
-        val selectedTopic = _uiState.value.topics.find { it.id == _uiState.value.selectedTopicId }
-        val title = selectedTopic?.title ?: "Focus Time"
+        val selectedTopic = _uiState.value.sessions.find { it.id == _uiState.value.selectedsessionId }
+        val title = selectedTopic?.let { "Unit ${it.unitNumber}" } ?: "Focus Time"
         val intent = android.content.Intent(getApplication(), com.iu.studytracker.service.FocusTimerService::class.java).apply {
             action = com.iu.studytracker.service.FocusTimerService.ACTION_START
-            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_ID, _uiState.value.selectedTopicId)
+            putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_ID, _uiState.value.selectedsessionId)
             putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_TASK_TITLE, title)
             putExtra(com.iu.studytracker.service.FocusTimerService.EXTRA_MINUTES, _uiState.value.currentFocusMinutes)
         }
@@ -183,7 +183,7 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
             action = com.iu.studytracker.service.FocusTimerService.ACTION_STOP
         }
         getApplication<Application>().startService(intent)
-        // Note: We intentionally do not clear selectedTopicId here, 
+        // Note: We intentionally do not clear selectedsessionId here, 
         // so that the post-session dialog retains its context.
     }
     
@@ -194,7 +194,7 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
         getApplication<Application>().startService(intent)
         _uiState.update { 
             it.copy(
-                selectedTopicId = null,
+                selectedsessionId = null,
                 selectedModuleId = null,
                 showPostSessionDialog = false
             ) 
@@ -214,10 +214,10 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
     }
     
     fun markTopicDone() {
-        val topicId = _uiState.value.selectedTopicId
-        if (topicId != null) {
+        val sessionId = _uiState.value.selectedsessionId
+        if (sessionId != null) {
             viewModelScope.launch {
-                repository.updateCurriculumTopicCompletion(topicId, true)
+                repository.updateStudySessionCompletion(sessionId, true)
             }
         }
         hardResetTimer()
@@ -234,10 +234,10 @@ class StudyNowViewModel(application: Application) : AndroidViewModel(application
     }
     
     fun onReschedule(dayOfWeek: Int, time: String, category: String) {
-        val topicId = _uiState.value.selectedTopicId
-        if (topicId != null) {
+        val sessionId = _uiState.value.selectedsessionId
+        if (sessionId != null) {
             viewModelScope.launch {
-                repository.updateCurriculumTopicSchedule(topicId, dayOfWeek, time, category)
+                repository.updateStudySessionSchedule(sessionId, dayOfWeek, time, category)
             }
         }
         _uiState.update { it.copy(showRescheduleDialog = false) }

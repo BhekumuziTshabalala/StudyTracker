@@ -50,7 +50,7 @@ class FirebaseSyncManager(
 
             // Setup invalidation tracker to sync on local changes
             database.invalidationTracker.addObserver(object : androidx.room.InvalidationTracker.Observer(
-                "degree_plans", "curriculum_modules", "curriculum_topics", "month_plans", 
+                "degree_plans", "curriculum_modules", "study_sessions", "month_plans", 
                 "modules", "topics", "tasks", "module_tasks", "module_schedule_events", "task_templates"
             ) {
                 override fun onInvalidated(tables: Set<String>) {
@@ -121,7 +121,7 @@ class FirebaseSyncManager(
         try {
             syncTable(uid, "degree_plans", com.iu.studytracker.data.database.entity.DegreePlan::class.java, database.degreePlanDao().getAllDegreePlans()) { items -> items.forEach { database.degreePlanDao().insert(it) } }
             syncTable(uid, "curriculum_modules", com.iu.studytracker.data.database.entity.CurriculumModule::class.java, database.curriculumDao().getAllCurriculumModulesSync()) { items -> items.forEach { database.curriculumDao().insertCurriculumModule(it) } }
-            syncTable(uid, "curriculum_topics", com.iu.studytracker.data.database.entity.CurriculumTopic::class.java, database.curriculumDao().getAllCurriculumTopics()) { items -> database.curriculumDao().insertCurriculumTopics(items) }
+            syncTable(uid, "study_sessions", com.iu.studytracker.data.database.entity.StudySession::class.java, database.curriculumDao().getAllStudySessions()) { items -> database.curriculumDao().insertStudySessions(items) }
             syncTable(uid, "month_plans", com.iu.studytracker.data.database.entity.MonthPlan::class.java, database.monthPlanDao().getAllMonthPlans()) { items -> items.forEach { database.monthPlanDao().insert(it) } }
             syncTable(uid, "modules", com.iu.studytracker.data.database.entity.Module::class.java, database.moduleDao().getAllModules()) { items -> items.forEach { database.moduleDao().insert(it) } }
             syncTable(uid, "topics", com.iu.studytracker.data.database.entity.Topic::class.java, database.topicDao().getAllTopics()) { items -> items.forEach { database.topicDao().insert(it) } }

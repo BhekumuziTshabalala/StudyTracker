@@ -33,31 +33,23 @@ class StudyReminderWorker(
         val app = applicationContext as StudyTrackerApp
         val repository = app.repository
 
-        val incompleteCount = repository.getIncompleteCountForToday()
+        val today = java.time.LocalDate.now().toString()
+        val todayTasks = repository.getTasksForDate(today).filter { !it.isCompleted }
 
-        if (incompleteCount > 0) {
-            // Find active module progress
-            val activeModules = repository.getAllCurriculumModulesSync().filter { !it.isCompleted }
-            val moduleProgressList = mutableListOf<String>()
+        if (todayTasks.isNotEmpty()) {
+            val firstTask = todayTasks.first()
             
-            for (module in activeModules) {
-                val totalTasks = repository.observeTaskCountForModule(module.id).first()
-                val completedTasks = repository.observeCompletedTaskCountForModule(module.id).first()
-                val remaining = totalTasks - completedTasks
-                if (remaining > 0) {
-                    moduleProgressList.add("${module.name}: $remaining tasks left")
-                }
-            }
-
-            val moduleText = if (moduleProgressList.isNotEmpty()) {
-                "\n" + moduleProgressList.joinToString("\n")
+            val alertMessage = if (firstTask.unitNumber != null) {
+                // Try to parse the module name out of the title, since we created it as "ModuleName - Unit X"
+                val moduleName = firstTask.title.substringBefore(" - Unit").ifBlank { "your module" }
+                "Study Unit ${firstTask.unitNumber} of $moduleName"
             } else {
-                ""
+                "Study Topic: ${firstTask.title}"
             }
-
+            
             sendNotification(
                 title = "📚 Study Time!",
-                message = "You have $incompleteCount topic${if (incompleteCount > 1) "s" else ""} to study today.$moduleText"
+                message = alertMessage
             )
         } else {
             // All done or rest day

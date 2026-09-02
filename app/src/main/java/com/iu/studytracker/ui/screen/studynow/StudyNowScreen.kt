@@ -299,12 +299,12 @@ fun StudyNowContent(
             }
         }
         
-        if (uiState.showTopicSelectionDialog) {
-            TopicSelectionDialog(
+        if (uiState.showsessionselectionDialog) {
+            sessionselectionDialog(
                 modules = uiState.modules,
-                topics = uiState.topics,
-                onDismiss = { viewModel.onDismissTopicSelection() },
-                onTopicSelected = { moduleId, topicId -> viewModel.onTopicSelected(moduleId, topicId) }
+                sessions = uiState.sessions,
+                onDismiss = { viewModel.onDismisssessionselection() },
+                onsessionselected = { moduleId, sessionId -> viewModel.onsessionselected(moduleId, sessionId) }
             )
         }
         
@@ -318,11 +318,11 @@ fun StudyNowContent(
 }
 
 @Composable
-fun TopicSelectionDialog(
+fun sessionselectionDialog(
     modules: List<com.iu.studytracker.data.database.entity.CurriculumModule>,
-    topics: List<com.iu.studytracker.data.database.entity.CurriculumTopic>,
+    sessions: List<com.iu.studytracker.data.database.entity.StudySession>,
     onDismiss: () -> Unit,
-    onTopicSelected: (String, String) -> Unit
+    onsessionselected: (String, String) -> Unit
 ) {
     var selectedModuleId by remember { mutableStateOf<String?>(null) }
     
@@ -357,18 +357,18 @@ fun TopicSelectionDialog(
                         }
                     }
                 } else {
-                    val moduleTopics = topics.filter { it.curriculumModuleId == selectedModuleId && !it.isCompleted }
-                    if (moduleTopics.isEmpty()) {
+                    val modulesessions = sessions.filter { it.curriculumModuleId == selectedModuleId && !it.isCompleted }
+                    if (modulesessions.isEmpty()) {
                         Text("No pending units for this module.")
                     } else {
                         androidx.compose.foundation.lazy.LazyColumn {
-                            items(moduleTopics.size) { index ->
-                                val topic = moduleTopics[index]
+                            items(modulesessions.size) { index ->
+                                val session = modulesessions[index]
                                 Text(
-                                    text = topic.title,
+                                    text = "Unit ${session.unitNumber}",
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { onTopicSelected(selectedModuleId!!, topic.id) }
+                                        .clickable { onsessionselected(selectedModuleId!!, session.id) }
                                         .padding(vertical = 12.dp)
                                 )
                                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))

@@ -96,3 +96,69 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
         db.execSQL("ALTER TABLE `curriculum_topics` ADD COLUMN `isCompleted` INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `curriculum_modules` ADD COLUMN `syllabus` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `curriculum_modules` ADD COLUMN `totalUnits` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `study_sessions` (
+                `id` TEXT NOT NULL,
+                `curriculumModuleId` TEXT NOT NULL,
+                `unitNumber` INTEGER NOT NULL,
+                `scheduledDay` INTEGER,
+                `scheduledTime` TEXT,
+                `timeSlotCategory` TEXT,
+                `isCompleted` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`curriculumModuleId`) REFERENCES `curriculum_modules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """)
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_study_sessions_curriculumModuleId` ON `study_sessions` (`curriculumModuleId`)")
+
+        val cursor = db.query("SELECT id, curriculumModuleId, scheduledDay, scheduledTime, timeSlotCategory, isCompleted, updatedAt FROM curriculum_topics ORDER BY curriculumModuleId, id")
+        var currentModuleId = ""
+        var unitCounter = 1
+        
+        while (cursor.moveToNext()) {
+            val id = cursor.getString(0)
+            val moduleId = cursor.getString(1)
+            
+            if (moduleId != currentModuleId) {
+                currentModuleId = moduleId
+                unitCounter = 1
+            }
+            
+            val day = if (cursor.isNull(2)) "NULL" else cursor.getInt(2).toString()
+            val time = if (cursor.isNull(3)) "NULL" else "'${cursor.getString(3)}'"
+            val cat = if (cursor.isNull(4)) "NULL" else "'${cursor.getString(4)}'"
+            val completed = cursor.getInt(5)
+            val updated = cursor.getLong(6)
+
+            db.execSQL("INSERT INTO `study_sessions` (id, curriculumModuleId, unitNumber, scheduledDay, scheduledTime, timeSlotCategory, isCompleted, updatedAt) VALUES ('$id', '$moduleId', $unitCounter, $day, $time, $cat, $completed, $updated)")
+            unitCounter++
+        }
+        cursor.close()
+
+        db.execSQL("""
+            UPDATE `curriculum_modules`
+            SET `totalUnits` = (
+                SELECT COUNT(*) FROM `study_sessions` 
+                WHERE `study_sessions`.curriculumModuleId = `curriculum_modules`.id
+            )
+        """)
+
+        db.execSQL("DROP TABLE IF EXISTS `curriculum_topics`")
+    }
+}
+
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `modules` ADD COLUMN `syllabus` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `modules` ADD COLUMN `totalUnits` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `tasks` ADD COLUMN `unitNumber` INTEGER DEFAULT NULL")
+        db.execSQL("ALTER TABLE `tasks` ADD COLUMN `moduleId` TEXT DEFAULT NULL")
+    }
+}

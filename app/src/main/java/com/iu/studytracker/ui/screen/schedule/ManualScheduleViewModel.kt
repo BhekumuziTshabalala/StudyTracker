@@ -5,15 +5,15 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.iu.studytracker.StudyTrackerApp
 import com.iu.studytracker.data.database.entity.CurriculumModule
-import com.iu.studytracker.data.database.entity.CurriculumTopic
+import com.iu.studytracker.data.database.entity.StudySession
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 data class ManualScheduleUiState(
     val modules: List<CurriculumModule> = emptyList(),
-    val topics: List<CurriculumTopic> = emptyList(),
-    val topicsByDay: Map<Int, List<CurriculumTopic>> = emptyMap(),
+    val sessions: List<StudySession> = emptyList(),
+    val sessionsByDay: Map<Int, List<StudySession>> = emptyMap(),
     val isLoading: Boolean = true
 )
 
@@ -33,14 +33,14 @@ class ManualScheduleViewModel(application: Application) : AndroidViewModel(appli
             val allModules = repository.getAllCurriculumModulesSync()
             val filteredModules = allModules.filter { it.id in moduleIds }
 
-            // Auto-allocate unscheduled topics
-            val topicsToAllocate = repository.getTopicsForModulesSync(moduleIds)
+            // Auto-allocate unscheduled sessions
+            val sessionsToAllocate = repository.getSessionsForModulesSync(moduleIds)
             var currentDay = 1 // Start at Monday
             var madeChanges = false
-            topicsToAllocate.forEach { topic ->
-                if (topic.scheduledDay == null) {
-                    repository.updateCurriculumTopicSchedule(
-                        topicId = topic.id,
+            sessionsToAllocate.forEach { session ->
+                if (session.scheduledDay == null) {
+                    repository.updateStudySessionSchedule(
+                        sessionId = session.id,
                         day = currentDay,
                         time = "12:00 PM", // Default Noon
                         category = "NOON"
@@ -50,14 +50,14 @@ class ManualScheduleViewModel(application: Application) : AndroidViewModel(appli
                 }
             }
 
-            // Observe the topics for these modules
-            repository.observeCurriculumTopicsForModules(moduleIds).collect { topics ->
-                val grouped = topics.groupBy { it.scheduledDay ?: -1 }
+            // Observe the sessions for these modules
+            repository.observeStudySessionsForModules(moduleIds).collect { sessions ->
+                val grouped = sessions.groupBy { it.scheduledDay ?: -1 }
                 _uiState.update { 
                     it.copy(
                         modules = filteredModules,
-                        topics = topics,
-                        topicsByDay = grouped,
+                        sessions = sessions,
+                        sessionsByDay = grouped,
                         isLoading = false
                     )
                 }
@@ -65,9 +65,9 @@ class ManualScheduleViewModel(application: Application) : AndroidViewModel(appli
         }
     }
 
-    fun updateTopicSchedule(topicId: String, dayOfWeek: Int?, time: String?, category: String?) {
+    fun updateSessionSchedule(sessionId: String, dayOfWeek: Int?, time: String?, category: String?) {
         viewModelScope.launch {
-            repository.updateCurriculumTopicSchedule(topicId, dayOfWeek, time, category)
+            repository.updateStudySessionSchedule(sessionId, dayOfWeek, time, category)
         }
     }
 
@@ -77,9 +77,9 @@ class ManualScheduleViewModel(application: Application) : AndroidViewModel(appli
             // We just need to mark the month as set up without actually generating dates.
             // SetupMonthWithCurriculumModules generates tasks automatically in StudyRepository.kt.
             // But if we use manual scheduling, maybe we should skip auto-generating tasks for this month?
-            // Actually, we can just call it - but since we don't use TopicScheduler for daily topics, it doesn't hurt.
+            // Actually, we can just call it - but since we don't use sessionscheduler for daily sessions, it doesn't hurt.
             // However, the Dashboard uses those generated tasks. 
-            // We will modify Dashboard to show BOTH auto-generated Tasks and manually scheduled CurriculumTopics.
+            // We will modify Dashboard to show BOTH auto-generated Tasks and manually scheduled StudySessions.
             repository.setupMonthWithCurriculumModules(
                 year = now.year, 
                 month = now.monthValue, 

@@ -15,28 +15,28 @@ import com.iu.studytracker.data.database.entity.Topic
 import com.iu.studytracker.data.database.entity.DegreePlan
 import com.iu.studytracker.data.database.dao.DegreePlanDao
 import com.iu.studytracker.data.database.entity.CurriculumModule
-import com.iu.studytracker.data.database.entity.CurriculumTopic
 import com.iu.studytracker.data.database.dao.CurriculumDao
 import com.iu.studytracker.data.database.dao.ModuleDetailsDao
 import com.iu.studytracker.data.database.entity.ModuleTask
 import com.iu.studytracker.data.database.entity.ModuleScheduleEvent
 import com.iu.studytracker.data.database.dao.TaskTemplateDao
 import com.iu.studytracker.data.database.entity.TaskTemplate
+import com.iu.studytracker.data.database.entity.StudySession
 
 @Database(
     entities = [
+        CurriculumModule::class,
+        StudySession::class,
+        DegreePlan::class,
         MonthPlan::class,
         Module::class,
         Topic::class,
         Task::class,
-        DegreePlan::class,
-        CurriculumModule::class,
-        CurriculumTopic::class,
         ModuleTask::class,
         ModuleScheduleEvent::class,
         TaskTemplate::class
     ],
-    version = 11,
+    version = 13,
     exportSchema = false
 )
 abstract class StudyTrackerDatabase : RoomDatabase() {
@@ -61,7 +61,7 @@ abstract class StudyTrackerDatabase : RoomDatabase() {
                     StudyTrackerDatabase::class.java,
                     "study_tracker.db"
                 )
-                    .addMigrations(MIGRATION_1_4, MIGRATION_4_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                    .addMigrations(MIGRATION_1_4, MIGRATION_4_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     .also { INSTANCE = it }

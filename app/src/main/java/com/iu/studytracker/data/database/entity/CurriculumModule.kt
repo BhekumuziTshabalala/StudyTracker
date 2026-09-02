@@ -22,5 +22,8 @@ data class CurriculumModule(
     val examPassed: Boolean? = null,
     val finalGrade: String? = null,
     
+    val syllabus: String = "",
+    val totalUnits: Int = 0,
+    
     val updatedAt: Long = System.currentTimeMillis()
 )

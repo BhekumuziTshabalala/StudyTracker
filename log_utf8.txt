@@ -1,0 +1,215 @@
+﻿--------- beginning of system
+08-13 09:27:00.267  1284  2914 I PowerManagerService: [PWL] SetWakeLockEnableDisable uid = 10335 , disable= true
+08-13 09:27:00.267  1284  2914 I PowerManagerService: [PWL] can not change uid =  10335
+--------- beginning of main
+08-13 09:27:00.267  1852  1852 D SecKeyguardClockRepositoryImpl: setClockSize SMALL
+08-13 09:27:00.268  1284  1334 D FreecessController: FZ : ee.mtakso.client(10322) [28671] reason: LEV
+08-13 09:27:00.268  1284  2914 W LocationManagerService: onFreezeStateChanged, uid[10322]=true
+08-13 09:27:00.269  1284  2914 I PowerManagerService: [PWL] SetWakeLockEnableDisable uid = 10322 , disable= true
+08-13 09:27:00.269  1284  2914 I PowerManagerService: [PWL] can not change uid =  10322
+08-13 09:27:00.269  1852  1852 I SecKeyguardClockPositionAlgorithm: prepareClockContainerHeightChanging:
+08-13 09:27:00.270  1852  1852 I FaceWidget_updatePosition: updatePosition: faceWidgetPosition = Point(0, 353)
+08-13 09:27:00.270  1852  1852 D FaceWidgetPagesController: refreshViews() reason = CLOCK_POSITION_CHANGED, force = false
+08-13 09:27:00.270  1284  1410 V Configuration: Updating configuration, locales updated from [] to [en_ZA]
+08-13 09:27:00.270  1284  1410 V Configuration: Updating configuration, locales updated from [] to [en_ZA]
+08-13 09:27:00.270  1284  1410 V Configuration: Updating configuration, locales updated from [] to [en_ZA]
+08-13 09:27:00.271  1284  1410 V Configuration: Updating configuration, locales updated from [] to [en_ZA]
+08-13 09:27:00.271  1284  1410 V Configuration: Updating configuration, locales updated from [] to [en_ZA]
+08-13 09:27:00.271  1284  1410 V Configuration: Updating configuration, locales updated from [] to [en_ZA]
+08-13 09:27:00.271  1284  1410 V Configuration: Updating configuration, locales updated from [] to [en_ZA]
+08-13 09:27:00.271  1284  1410 V Configuration: Updating configuration, locales updated from [] to [en_ZA]
+08-13 09:27:00.271  1284  1410 V Configuration: Updating configuration, locales updated from [] to [en_ZA]
+08-13 09:27:00.271  1852  1852 I FaceWidgetClockPage: updateClockRect: skip in screen off state
+08-13 09:27:00.352  1284  1430 D ActivityManager: freezing 29046 com.google.android.apps.messaging
+08-13 09:27:00.357  1284  1430 I UMR     : B|Compact com.google.android.apps.messaging(29046)
+08-13 09:27:00.626  1284  1296 I system_server: Background concurrent mark compact GC freed 22MB AllocSpace bytes, 57(1564KB) LOS objects, 18% free, 104MB/128MB, paused 1.402ms,3.707ms total 288.295ms
+08-13 09:27:00.740  1828  2266 D IpClient/wlan0: interfaceLinkStateChanged: ifindex 46 up
+08-13 09:27:00.807  1828  2266 D IpClient/wlan0: addressUpdated: fd00::8400:d5ff:fe6d:84a/64 on ifindex 46 flags 0x00000100 scope 0
+08-13 09:27:00.807  1828  2266 D IpClient/wlan0: addressUpdated: fd00::173c:7dc7:f87a:46da/64 on ifindex 46 flags 0x00000001 scope 0
+08-13 09:27:00.807  1828  2266 W AlarmManager: Unrecognized alarm listener com.android.networkstack.android.net.ip.IpClientLinkObserver$Dhcp6PdPreferredPrefixAlarmListener@4f350c1
+08-13 09:27:00.809  1850  2407 I EPDG-1 [SmManager]: onNetInterfaceAddressUpdated, addr=xxxx.. , len=24 iface=wlan0 fqdnRetryCount=0
+08-13 09:27:00.809  1850  1850 I EPDG-1 [NetInterfaceEventObserver]: sendInternalMessage, not mobile, ignore
+08-13 09:27:00.809  1850  1850 I EPDG-1 [NetInterfaceEventObserver]: sendInternalMessage, not mobile, ignore
+08-13 09:27:00.810  1850  1850 I EPDG-0 [NetInterfaceEventObserver]: sendInternalMessage, not mobile, ignore
+08-13 09:27:00.810  1850  1850 I EPDG-0 [NetInterfaceEventObserver]: sendInternalMessage, not mobile, ignore
+08-13 09:27:00.810  1850  2387 I EPDG-0 [SmManager]: onNetInterfaceAddressUpdated, addr=xxxx.. , len=24 iface=wlan0 fqdnRetryCount=0
+08-13 09:27:00.810  1850  2387 I EPDG-0 [SmManager]: onNetInterfaceAddressUpdated, addr=xxxx.. , len=25 iface=wlan0 fqdnRetryCount=0
+08-13 09:27:00.810  1850  2407 I EPDG-1 [SmManager]: onNetInterfaceAddressUpdated, addr=xxxx.. , len=25 iface=wlan0 fqdnRetryCount=0
+08-13 09:27:00.820  1284  1430 I UMR     : E|Compact d_rss=-85508KB
+08-13 09:27:01.098  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:01.098  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:01.098  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:01.648  1284  1316 I ActivityManager: Killing 27679:com.samsung.android.mdm/u0a177 (adj 985): empty #25
+08-13 09:27:01.651  1284  1316 I ActivityManager: Changes in 10335 15 to 19, 256 to 0
+08-13 09:27:01.711  1284  1318 I libprocessgroup: Removed cgroup /sys/fs/cgroup/apps/uid_10177/pid_27679
+08-13 09:27:01.711   852   852 I Zygote  : Process 27679 exited due to signal 9 (Killed)
+08-13 09:27:01.936  1803  1803 I wpa_supplicant: Heartbeat 927
+08-13 09:27:02.099  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:02.099  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:02.099  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:02.155  1850  2387 I EPDG-0 [WifiProfiler]: handleWifiRssiIntent, rssi=-65
+08-13 09:27:02.156  1850  2387 I EPDG-0 [WifiProfiler]: isProfiling, hash=51368002, started=true
+08-13 09:27:02.156  1850  2387 I EPDG-0 [LogMetrics]: set, type=WIFI_RSSI_LAST, value=-65
+08-13 09:27:02.157  1850  2387 I EPDG-0 [WifiProfiler]: isProfiling, hash=51368002, started=true
+08-13 09:27:02.157  1850  2387 I EPDG-0 [WifiProfiler]: Rssi : -65 highrange : -71 lowrange : -79 mIsRssiInHystersis : false
+08-13 09:27:02.157  1850  2387 I EPDG-0 [Subscription]: isEpdgAvailable, IwlanPsState=1/2
+08-13 09:27:02.157  1850  2387 I EPDG-0 [WifiProfiler]: Wifi signal is Upgraded : (lastStrength-65 : mWeakWifiLevel3 : mWifiRoveIn-70 : mWifiRoveOut-79 : currentStrength)-65
+08-13 09:27:02.160  1850  2387 I EPDG-0 [UtilNet]: getSubIdFromSpecifier, subId=2
+08-13 09:27:02.161  1850  2387 I EPDG-0 [Utils]: isWifiConnected: [type: WIFI[], state: CONNECTED/CONNECTED, reason: (unspecified), extra: , failover: false, available: true, roaming: false]
+08-13 09:27:02.182  1850  2387 I EPDG-0 [WifiProfiler]: captiveAuthenticated=false
+08-13 09:27:02.182  1850  2387 I EPDG-0 [WifiProfiler]: unable to find status about connected wifi
+08-13 09:27:02.182  1850  2387 I EPDG-0 [WifiProfiler]: setResultOfRunnableForCannotSwitchToWifi: set to false
+08-13 09:27:02.182  1850  2387 I EPDG-0 [WifiProfiler]: isCaptivePortalAuthenticated: defaultValue: true wifiLinkStatus: UNDETERMINABLE
+08-13 09:27:02.182  1850  2387 I EPDG-0 [WifiProfiler]: posting WifiOn
+08-13 09:27:02.185  1850  2387 I EPDG-0 [UtilNet]: getSubIdFromSpecifier, subId=2
+08-13 09:27:02.186  1850  2387 I EPDG-0 [Utils]: isWifiConnected: [type: WIFI[], state: CONNECTED/CONNECTED, reason: (unspecified), extra: , failover: false, available: true, roaming: false]
+08-13 09:27:02.206  1850  2387 I EPDG-0 [WifiProfiler]: captiveAuthenticated=false
+08-13 09:27:02.206  1850  2387 I EPDG-0 [WifiProfiler]: unable to find status about connected wifi
+08-13 09:27:02.206  1850  2387 I EPDG-0 [WifiProfiler]: setResultOfRunnableForCannotSwitchToWifi: set to false
+08-13 09:27:02.206  1850  2387 I EPDG-0 [WifiProfiler]: isCaptivePortalAuthenticated: defaultValue: true wifiLinkStatus: UNDETERMINABLE
+08-13 09:27:02.206  1850  2387 I EPDG-0 [WifiProfiler]: EPDI (STRONG_WIFI_SIGNAL)
+08-13 09:27:02.206  1850  2387 I EPDG-0 [EpdgRunnable]: WifiOn, perform
+08-13 09:27:02.206  1850  2387 I EPDG-0 [WifiProfiler]: isL2WHandoverProfilingRunning: returning: false
+08-13 09:27:02.206  1850  2387 I EPDG-0 [CellularProfiler]: setLteThreshold: Good Rsrp: -110 Low Rsrp: -118 Good Rsrq: 0 Low Rsrq: 0
+08-13 09:27:02.207  1850  2387 I EPDG-0 [ThrottleController]: isThrottleTimerRunning: apnType: ims. result: true
+08-13 09:27:02.207  1850  2387 I EPDG-0 [Subscription]: isEpdgAvailabilityRecommended, false, State is throttle. Waiting for the state to be reset.
+08-13 09:27:02.233   572   572 D io_stats: !@   8,0 r 1869676 49948865 w 278311 3450792 d 49966 2355604 f 6380 28344 iot 603892 0 th 0 0 0 pt 0 inp 0 0 9310.133
+08-13 09:27:02.767   941   955 D HeatmapThread: Updated plugType via uevent: 2
+08-13 09:27:02.769   903   943 E BatteryDump: !@new_battery_dump : 3839,339,475,550,30,219,218,249,0,0,253,249,0,Charging,NO_CHARGING,Normal,Good,USB,1,Normal,0,0,9077,0x0,0x10000,0x0,0,0,0,v0002,0000,0000,00000000,0,0,0,0,136,37952,3022,990,0,
+08-13 09:27:02.777   903   903 I sehhealth-service: updateLrpSysfs: write: 252
+08-13 09:27:03.100  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:03.100  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:03.100  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:04.101  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:04.101  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:04.101  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:04.235   572   572 D io_stats: !@   8,0 r 1869676 49948865 w 278321 3450824 d 49966 2355604 f 6381 28346 iot 603912 0 th 0 0 0 pt 0 inp 0 0 9312.135
+08-13 09:27:04.235   572   572 D io_stats: !@ Read_top(KB): .android.forest(27593) 188 system_server(1284) 24 kworker/5:7H(27112) 8
+08-13 09:27:04.235   572   572 D io_stats: !@ Write_top(KB): soft.appmanager(5263) 16 vendor.samsung.(903) 8 kworker/u16:3(18318) 8
+08-13 09:27:04.615  2318  4180 I id.app.launcher: Explicit concurrent mark compact GC freed 3999KB AllocSpace bytes, 16(832KB) LOS objects, 49% free, 19MB/38MB, paused 1.274ms,5.275ms total 250.074ms
+08-13 09:27:04.910 28658 28658 W soft_error.cpp: [pando::graphql::PandoGraphQLRequestHybrid::assertValid] : Using a PandoGraphQLRequest after it has been consumed. Query name is IGSharedAccountsQuery
+08-13 09:27:05.102  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:05.102  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:05.102  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:05.219  1850  2387 I EPDG-0 [WifiProfiler]: handleWifiRssiIntent, rssi=-66
+08-13 09:27:05.219  1850  2387 I EPDG-0 [WifiProfiler]: isProfiling, hash=51368002, started=true
+08-13 09:27:05.220  1850  2387 I EPDG-0 [LogMetrics]: set, type=WIFI_RSSI_LAST, value=-66
+08-13 09:27:05.220  1850  2387 I EPDG-0 [WifiProfiler]: isProfiling, hash=51368002, started=true
+08-13 09:27:05.220  1850  2387 I EPDG-0 [WifiProfiler]: Rssi : -66 highrange : -71 lowrange : -79 mIsRssiInHystersis : false
+08-13 09:27:05.220  1850  2387 I EPDG-0 [Subscription]: isEpdgAvailable, IwlanPsState=1/2
+08-13 09:27:05.221  1850  2387 I EPDG-0 [WifiProfiler]: Wifi signal is Upgraded : (lastStrength-65 : mWeakWifiLevel3 : mWifiRoveIn-70 : mWifiRoveOut-79 : currentStrength)-66
+08-13 09:27:05.224  1850  2387 I EPDG-0 [UtilNet]: getSubIdFromSpecifier, subId=2
+08-13 09:27:05.225  1850  2387 I EPDG-0 [Utils]: isWifiConnected: [type: WIFI[], state: CONNECTED/CONNECTED, reason: (unspecified), extra: , failover: false, available: true, roaming: false]
+08-13 09:27:05.244  1850  2387 I EPDG-0 [WifiProfiler]: captiveAuthenticated=false
+08-13 09:27:05.244  1284  1334 D MARsPolicyManager: triggerAction called!
+08-13 09:27:05.245  1284  1334 I NSLocationMonitor: getGPSUsingApps() called
+08-13 09:27:05.245  1850  2387 I EPDG-0 [WifiProfiler]: unable to find status about connected wifi
+08-13 09:27:05.245  1850  2387 I EPDG-0 [WifiProfiler]: setResultOfRunnableForCannotSwitchToWifi: set to false
+08-13 09:27:05.245  1850  2387 I EPDG-0 [WifiProfiler]: isCaptivePortalAuthenticated: defaultValue: true wifiLinkStatus: UNDETERMINABLE
+08-13 09:27:05.245  1850  2387 I EPDG-0 [WifiProfiler]: posting WifiOn
+08-13 09:27:05.246  2873 17761 I NSLocationManager_FLP: getGPSUsingApps, No change
+08-13 09:27:05.247  1850  2387 I EPDG-0 [UtilNet]: getSubIdFromSpecifier, subId=2
+08-13 09:27:05.248  1850  2387 I EPDG-0 [Utils]: isWifiConnected: [type: WIFI[], state: CONNECTED/CONNECTED, reason: (unspecified), extra: , failover: false, available: true, roaming: false]
+08-13 09:27:05.249  1284  1334 W Binder  : Outgoing transactions from this process must be FLAG_ONEWAY
+08-13 09:27:05.249  1284  1334 W Binder  : java.lang.Throwable
+08-13 09:27:05.249  1284  1334 W Binder  : 	at android.os.BinderProxy.transact(BinderProxy.java:575)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at android.bluetooth.IBluetoothGatt$Stub$Proxy.getAdvertisingSetUids(IBluetoothGatt.java:992)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at android.bluetooth.BluetoothAdapter.getAdvertisingSetUids(BluetoothAdapter.java:1995)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at android.bluetooth.BluetoothAdapter.getHWUsingApps(BluetoothAdapter.java:2266)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at com.android.server.am.mars.filter.filter.BlueToothConnectedFilter.updateBTUsingPackages(qb/111982416 145172f3b595473eb3271928f276d82413778c4f01c45db77e06b7fd031f7c86:22)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at com.android.server.am.MARsPolicyManager.triggerAction(qb/111982416 145172f3b595473eb3271928f276d82413778c4f01c45db77e06b7fd031f7c86:96)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at com.android.server.am.MARsHandler$MainHandler.handleMessage(qb/111982416 145172f3b595473eb3271928f276d82413778c4f01c45db77e06b7fd031f7c86:2023)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at android.os.Handler.dispatchMessage(Handler.java:132)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at android.os.Looper.dispatchMessage(Looper.java:358)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at android.os.Looper.loopOnce(Looper.java:288)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at android.os.Looper.loop(Looper.java:392)
+08-13 09:27:05.249  1284  1334 W Binder  : 	at com.android.server.am.MARsHandler$MainThread.run(qb/111982416 145172f3b595473eb3271928f276d82413778c4f01c45db77e06b7fd031f7c86:27)
+08-13 09:27:05.263  1850  2387 I EPDG-0 [WifiProfiler]: captiveAuthenticated=false
+08-13 09:27:05.263  1850  2387 I EPDG-0 [WifiProfiler]: unable to find status about connected wifi
+08-13 09:27:05.263  1850  2387 I EPDG-0 [WifiProfiler]: setResultOfRunnableForCannotSwitchToWifi: set to false
+08-13 09:27:05.263  1850  2387 I EPDG-0 [WifiProfiler]: isCaptivePortalAuthenticated: defaultValue: true wifiLinkStatus: UNDETERMINABLE
+08-13 09:27:05.263  1850  2387 I EPDG-0 [WifiProfiler]: EPDI (STRONG_WIFI_SIGNAL)
+08-13 09:27:05.263  1850  2387 I EPDG-0 [EpdgRunnable]: WifiOn, perform
+08-13 09:27:05.263  1850  2387 I EPDG-0 [WifiProfiler]: isL2WHandoverProfilingRunning: returning: false
+08-13 09:27:05.263  1850  2387 I EPDG-0 [CellularProfiler]: setLteThreshold: Good Rsrp: -110 Low Rsrp: -118 Good Rsrq: 0 Low Rsrq: 0
+08-13 09:27:05.263  1850  2387 I EPDG-0 [ThrottleController]: isThrottleTimerRunning: apnType: ims. result: true
+08-13 09:27:05.264  1850  2387 I EPDG-0 [Subscription]: isEpdgAvailabilityRecommended, false, State is throttle. Waiting for the state to be reset.
+08-13 09:27:05.624  2318  4180 I HoneySpace.Memory-Monitor: calTrimLevel propValue: 0
+08-13 09:27:05.624  2318  4180 I HoneySpace.Memory-Monitor: time diff = 9030
+08-13 09:27:05.624  2318  4180 I HoneySpace.MemoryAwait:  awaitJob is null, no need to proceed..
+08-13 09:27:05.625  2318 28513 I HoneySpace.Memory-Monitor: trimMemory 20
+08-13 09:27:06.103  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:06.103  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:06.103  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:06.237   572   572 D io_stats: !@   8,0 r 1869707 49949685 w 278326 3450848 d 49966 2355604 f 6381 28346 iot 603976 0 th 0 0 0 pt 0 inp 0 0 9314.137
+08-13 09:27:07.104  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:07.104  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:07.104  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:08.099  1284  3427 I ActivityManager: Killing 27708:com.samsung.android.privacydashboard/u0a98 (adj 975): empty #25
+08-13 09:27:08.104  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:08.104  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:08.104  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:08.107  1284  3427 I ActivityManager: Changes in 10337 11 to 19, 384 to 0
+08-13 09:27:08.109   953  1027 I SurfaceFlinger: Current= 120, Period= 120, hwcPeriod= 120
+08-13 09:27:08.118  1284  1316 I ActivityManager: Changes in 10337 19 to 11, 0 to 384
+08-13 09:27:08.159  1284  1318 I libprocessgroup: Removed cgroup /sys/fs/cgroup/apps/uid_10098/pid_27708
+08-13 09:27:08.160   852   852 I Zygote  : Process 27708 exited due to signal 9 (Killed)
+08-13 09:27:08.239   572   572 D io_stats: !@   8,0 r 1869713 49950033 w 278326 3450848 d 49966 2355604 f 6381 28346 iot 603988 0 th 0 0 0 pt 0 inp 0 0 9316.139
+08-13 09:27:08.240   572   572 D io_stats: !@ Read_top(KB): agram.barcelona(28658) 564 kworker/u16:3(18318) 256 .gms.persistent(2364) 256
+08-13 09:27:08.240   572   572 D io_stats: !@ Write_top(KB): kworker/u16:3(18318) 24
+08-13 09:27:08.270  1850  2387 I EPDG-0 [WifiProfiler]: handleWifiRssiIntent, rssi=-69
+08-13 09:27:08.271  1850  2387 I EPDG-0 [WifiProfiler]: isProfiling, hash=51368002, started=true
+08-13 09:27:08.272  1850  2387 I EPDG-0 [LogMetrics]: set, type=WIFI_RSSI_LAST, value=-69
+08-13 09:27:08.272  1850  2387 I EPDG-0 [WifiProfiler]: isProfiling, hash=51368002, started=true
+08-13 09:27:08.272  1850  2387 I EPDG-0 [WifiProfiler]: Rssi : -69 highrange : -71 lowrange : -79 mIsRssiInHystersis : false
+08-13 09:27:08.273  1850  2387 I EPDG-0 [Subscription]: isEpdgAvailable, IwlanPsState=1/2
+08-13 09:27:08.273  1850  2387 I EPDG-0 [WifiProfiler]: Wifi signal is Upgraded : (lastStrength-66 : mWeakWifiLevel3 : mWifiRoveIn-70 : mWifiRoveOut-79 : currentStrength)-69
+08-13 09:27:08.276  1850  2387 I EPDG-0 [UtilNet]: getSubIdFromSpecifier, subId=2
+08-13 09:27:08.277  1850  2387 I EPDG-0 [Utils]: isWifiConnected: [type: WIFI[], state: CONNECTED/CONNECTED, reason: (unspecified), extra: , failover: false, available: true, roaming: false]
+08-13 09:27:08.292  2028  2888 I TUIThread: epol_call: EPOLL_SKIP
+08-13 09:27:08.296  2028  2886 I TUILLThread: run: EPOLL_SKIP
+08-13 09:27:08.297  1850  2387 I EPDG-0 [WifiProfiler]: captiveAuthenticated=false
+08-13 09:27:08.297  1850  2387 I EPDG-0 [WifiProfiler]: unable to find status about connected wifi
+08-13 09:27:08.297  1850  2387 I EPDG-0 [WifiProfiler]: setResultOfRunnableForCannotSwitchToWifi: set to false
+08-13 09:27:08.297  1850  2387 I EPDG-0 [WifiProfiler]: isCaptivePortalAuthenticated: defaultValue: true wifiLinkStatus: UNDETERMINABLE
+08-13 09:27:08.297  1850  2387 I EPDG-0 [WifiProfiler]: posting WifiOn
+08-13 09:27:08.300  1850  2387 I EPDG-0 [UtilNet]: getSubIdFromSpecifier, subId=2
+08-13 09:27:08.301  1850  2387 I EPDG-0 [Utils]: isWifiConnected: [type: WIFI[], state: CONNECTED/CONNECTED, reason: (unspecified), extra: , failover: false, available: true, roaming: false]
+08-13 09:27:08.321  1850  2387 I EPDG-0 [WifiProfiler]: captiveAuthenticated=false
+08-13 09:27:08.321  1850  2387 I EPDG-0 [WifiProfiler]: unable to find status about connected wifi
+08-13 09:27:08.321  1850  2387 I EPDG-0 [WifiProfiler]: setResultOfRunnableForCannotSwitchToWifi: set to false
+08-13 09:27:08.321  1850  2387 I EPDG-0 [WifiProfiler]: isCaptivePortalAuthenticated: defaultValue: true wifiLinkStatus: UNDETERMINABLE
+08-13 09:27:08.321  1850  2387 I EPDG-0 [WifiProfiler]: EPDI (STRONG_WIFI_SIGNAL)
+08-13 09:27:08.321  1850  2387 I EPDG-0 [EpdgRunnable]: WifiOn, perform
+08-13 09:27:08.321  1850  2387 I EPDG-0 [WifiProfiler]: isL2WHandoverProfilingRunning: returning: false
+08-13 09:27:08.322  1850  2387 I EPDG-0 [CellularProfiler]: setLteThreshold: Good Rsrp: -110 Low Rsrp: -118 Good Rsrq: 0 Low Rsrq: 0
+08-13 09:27:08.322  1850  2387 I EPDG-0 [ThrottleController]: isThrottleTimerRunning: apnType: ims. result: true
+08-13 09:27:08.322  1850  2387 I EPDG-0 [Subscription]: isEpdgAvailabilityRecommended, false, State is throttle. Waiting for the state to be reset.
+08-13 09:27:09.106  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:09.106  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:09.106  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:09.513  1828  2266 D IpClient/wlan0: addressUpdated: fd00::8400:d5ff:fe6d:84a/64 on ifindex 46 flags 0x00000100 scope 0
+08-13 09:27:09.513  1828  2266 D IpClient/wlan0: addressUpdated: fd00::173c:7dc7:f87a:46da/64 on ifindex 46 flags 0x00000001 scope 0
+08-13 09:27:09.515  1828  2266 W AlarmManager: Unrecognized alarm listener com.android.networkstack.android.net.ip.IpClientLinkObserver$Dhcp6PdPreferredPrefixAlarmListener@4f350c1
+08-13 09:27:09.522  1850  1850 I EPDG-1 [NetInterfaceEventObserver]: sendInternalMessage, not mobile, ignore
+08-13 09:27:09.522  1850  1850 I EPDG-0 [NetInterfaceEventObserver]: sendInternalMessage, not mobile, ignore
+08-13 09:27:09.522  1850  2387 I EPDG-0 [SmManager]: onNetInterfaceAddressUpdated, addr=xxxx.. , len=24 iface=wlan0 fqdnRetryCount=0
+08-13 09:27:09.523  1850  2407 I EPDG-1 [SmManager]: onNetInterfaceAddressUpdated, addr=xxxx.. , len=24 iface=wlan0 fqdnRetryCount=0
+08-13 09:27:09.524  1850  2407 I EPDG-1 [SmManager]: onNetInterfaceAddressUpdated, addr=xxxx.. , len=25 iface=wlan0 fqdnRetryCount=0
+08-13 09:27:09.525  1850  2387 I EPDG-0 [SmManager]: onNetInterfaceAddressUpdated, addr=xxxx.. , len=25 iface=wlan0 fqdnRetryCount=0
+08-13 09:27:09.525  1850  1850 I EPDG-0 [NetInterfaceEventObserver]: sendInternalMessage, not mobile, ignore
+08-13 09:27:09.525  1850  1850 I EPDG-1 [NetInterfaceEventObserver]: sendInternalMessage, not mobile, ignore
+08-13 09:27:10.106  1143  1215 I bauth_FPBAuthService: pcf : 0x1012, 0 ,1 ,0 ,0 ,0 ,0, 16.0.0.4
+08-13 09:27:10.106  1143  1215 I bauth_FPBAuthService: thread id : 1, preenroll_flag : 0, nd cnt : 0, cso : 0, et : 0
+08-13 09:27:10.106  1143  1215 I bauth_FPBAuthService: FPBAuthService::timerHandler complete
+08-13 09:27:10.241   572   572 D io_stats: !@   8,0 r 1869713 49950033 w 278326 3450848 d 51485 2392004 f 6381 28346 iot 604144 0 th 0 0 0 pt 0 inp 0 0 9318.141
+08-13 09:27:10.252   953  1027 I SurfaceFlinger: Current= 120, Period= 120, hwcPeriod= 120
+08-13 09:27:10.267  1284  1334 D MARsPolicyManager: triggerAction called!
+08-13 09:27:10.268  1284  1334 I NSLocationMonitor: getGPSUsingApps() called
+08-13 09:27:10.269  2873 17761 I NSLocationManager_FLP: getGPSUsingApps, No change
+08-13 09:27:10.274 27593 27593 I DWBDigitalWellbeingAppl: onTrimMemory(): level = 40
+08-13 09:27:10.289 27593 27646 I DWBLocalPkgRepositoryIm: clearCache
+08-13 09:27:10.289 27593 27646 I DWBCacheFlow: clear : lock before
+08-13 09:27:10.289 27593 27646 I DWBCacheFlow: clear : lock start
+08-13 09:27:10.290 27593 27646 I DWBCacheFlow: clear : lock end and subscriptionCount : 0
+08-13 09:27:10.793  6686  6686 I adbd    : adbd service requested 'shell,v2:export ANDROID_LOG_TAGS=''; exec logcat '-d' '-t' '200''

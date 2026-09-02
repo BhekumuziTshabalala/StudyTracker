@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.iu.studytracker.data.database.entity.CurriculumTopic
+import com.iu.studytracker.data.database.entity.StudySession
 import com.iu.studytracker.ui.theme.GradientEnd
 import com.iu.studytracker.ui.theme.GradientStart
 import com.iu.studytracker.ui.theme.Purple40
@@ -119,7 +119,7 @@ fun ManualScheduleScreen(
                         contentPadding = PaddingValues(bottom = 120.dp)
                     ) {
                         WEEKDAYS.forEach { (dayIndex, dayName) ->
-                            val dayTopics = state.topicsByDay[dayIndex] ?: emptyList()
+                            val dayTopics = state.sessionsByDay[dayIndex] ?: emptyList()
                             
                             item {
                                 Spacer(modifier = Modifier.height(24.dp))
@@ -151,10 +151,10 @@ fun ManualScheduleScreen(
                                 items(dayTopics) { topic ->
                                     val module = state.modules.find { it.id == topic.curriculumModuleId }
                                     TopicScheduleCard(
-                                        topic = topic,
+                                        session = topic,
                                         moduleName = module?.name ?: "Unknown Module",
                                         onScheduleChange = { newDay, newTime, newCategory ->
-                                            viewModel.updateTopicSchedule(topic.id, newDay, newTime, newCategory)
+                                            viewModel.updateSessionSchedule(topic.id, newDay, newTime, newCategory)
                                         }
                                     )
                                 }
@@ -162,7 +162,7 @@ fun ManualScheduleScreen(
                         }
                         
                         // Unscheduled topics if any
-                        val unscheduled = state.topicsByDay[-1] ?: emptyList()
+                        val unscheduled = state.sessionsByDay[-1] ?: emptyList()
                         if (unscheduled.isNotEmpty()) {
                             item {
                                 Spacer(modifier = Modifier.height(32.dp))
@@ -176,10 +176,10 @@ fun ManualScheduleScreen(
                             items(unscheduled) { topic ->
                                 val module = state.modules.find { it.id == topic.curriculumModuleId }
                                 TopicScheduleCard(
-                                    topic = topic,
+                                    session = topic,
                                     moduleName = module?.name ?: "Unknown Module",
                                     onScheduleChange = { newDay, newTime, newCategory ->
-                                        viewModel.updateTopicSchedule(topic.id, newDay, newTime, newCategory)
+                                        viewModel.updateSessionSchedule(topic.id, newDay, newTime, newCategory)
                                     }
                                 )
                             }
@@ -225,7 +225,7 @@ val TIME_SLOTS = listOf(
 
 @Composable
 fun TopicScheduleCard(
-    topic: CurriculumTopic,
+    session: StudySession,
     moduleName: String,
     onScheduleChange: (Int?, String?, String?) -> Unit
 ) {
@@ -243,7 +243,7 @@ fun TopicScheduleCard(
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = topic.title,
+                text = "Unit ${session.unitNumber}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -259,7 +259,7 @@ fun TopicScheduleCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 WEEKDAYS.forEach { (dayIndex, dayName) ->
-                    val isSelected = topic.scheduledDay == dayIndex
+                    val isSelected = session.scheduledDay == dayIndex
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
@@ -267,7 +267,7 @@ fun TopicScheduleCard(
                                 if (isSelected) MaterialTheme.colorScheme.primary 
                                 else MaterialTheme.colorScheme.surface
                             )
-                            .clickable { onScheduleChange(if (isSelected) null else dayIndex, topic.scheduledTime, topic.timeSlotCategory) }
+                            .clickable { onScheduleChange(if (isSelected) null else dayIndex, session.scheduledTime, session.timeSlotCategory) }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -289,7 +289,7 @@ fun TopicScheduleCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TIME_SLOTS.forEach { (category, label, time) ->
-                    val isSelected = topic.timeSlotCategory == category
+                    val isSelected = session.timeSlotCategory == category
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -299,7 +299,7 @@ fun TopicScheduleCard(
                                 else MaterialTheme.colorScheme.surface
                             )
                             .clickable { 
-                                onScheduleChange(topic.scheduledDay, if (isSelected) null else time, if (isSelected) null else category) 
+                                onScheduleChange(session.scheduledDay, if (isSelected) null else time, if (isSelected) null else category) 
                             }
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center

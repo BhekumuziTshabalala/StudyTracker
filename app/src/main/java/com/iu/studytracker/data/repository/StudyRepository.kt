@@ -12,7 +12,7 @@ import com.iu.studytracker.data.database.dao.DegreePlanDao
 import com.iu.studytracker.data.database.dao.CurriculumDao
 import com.iu.studytracker.data.database.dao.ModuleDetailsDao
 import com.iu.studytracker.data.database.entity.CurriculumModule
-import com.iu.studytracker.data.database.entity.CurriculumTopic
+import com.iu.studytracker.data.database.entity.StudySession
 import com.iu.studytracker.data.database.entity.ModuleTask
 import com.iu.studytracker.data.database.entity.ModuleScheduleEvent
 import com.iu.studytracker.data.database.entity.DegreePlan
@@ -24,7 +24,7 @@ import com.google.gson.Gson
 import com.iu.studytracker.data.database.relation.ModuleWithTopics
 import com.iu.studytracker.data.database.relation.MonthPlanFull
 import com.iu.studytracker.data.database.relation.MonthPlanWithModules
-import com.iu.studytracker.scheduler.TopicScheduler
+
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
@@ -128,12 +128,17 @@ class StudyRepository(
                         semester = semesterJson.effectiveSemester,
                         code = moduleJson.code.replace("\\[cite:.*\\]".toRegex(), ""),
                         name = moduleJson.name.replace("\\[cite:.*\\]".toRegex(), ""),
-                        assessment = moduleJson.assessment.replace("\\[cite:.*\\]".toRegex(), "")
+                        assessment = moduleJson.assessment.replace("\\[cite:.*\\]".toRegex(), ""),
+                        syllabus = moduleJson.coreTopics.joinToString("\n• ", prefix = "• "),
+                        totalUnits = moduleJson.totalUnits ?: moduleJson.coreTopics.size
                     )
-                    val topics = moduleJson.coreTopics.map { topicString ->
-                        CurriculumTopic(title = topicString.replace("\\[cite:.*\\]".toRegex(), ""))
+                    val sessions = (1..module.totalUnits).map { unitNum ->
+                        StudySession(
+                            curriculumModuleId = module.id,
+                            unitNumber = unitNum
+                        )
                     }
-                    curriculumDao.insertModuleWithTopics(module, topics)
+                    curriculumDao.insertModuleWithSessions(module, sessions)
                 }
             }
             curriculumData.programme.replace("\\[cite:.*\\]".toRegex(), "")
@@ -147,8 +152,8 @@ class StudyRepository(
         curriculumDao.updateModuleCompletion(moduleId, isCompleted)
     }
     
-    suspend fun updateCurriculumTopicCompletion(topicId: String, isCompleted: Boolean) {
-        curriculumDao.updateTopicCompletion(topicId, isCompleted)
+    suspend fun updateStudySessionCompletion(sessionId: String, isCompleted: Boolean) {
+        curriculumDao.updateSessionCompletion(sessionId, isCompleted)
     }
 
     suspend fun updateExamResult(moduleId: String, passed: Boolean?, grade: String?) {
@@ -159,24 +164,21 @@ class StudyRepository(
         return curriculumDao.observeModuleById(moduleId)
     }
 
-    fun observeTopicsForModule(moduleId: String): Flow<List<CurriculumTopic>> {
-        return curriculumDao.observeTopicsForModule(moduleId)
+    fun observeSessionsForModule(moduleId: String): Flow<List<StudySession>> {
+        return curriculumDao.observeSessionsForModule(moduleId)
     }
 
-    suspend fun insertCurriculumModuleManually(module: CurriculumModule, topics: List<CurriculumTopic>) {
-        curriculumDao.insertModuleWithTopics(module, topics)
+    suspend fun insertCurriculumModuleManually(module: CurriculumModule, sessions: List<StudySession>) {
+        curriculumDao.insertModuleWithSessions(module, sessions)
     }
 
-    suspend fun updateTopicTitle(topicId: String, title: String) {
-        curriculumDao.updateTopicTitle(topicId, title)
-    }
 
     fun observeAllCurriculumModules(): Flow<List<CurriculumModule>> {
         return curriculumDao.getAllCurriculumModules()
     }
     
-    fun observeAllCurriculumTopics(): Flow<List<CurriculumTopic>> {
-        return curriculumDao.observeAllCurriculumTopics()
+    fun observeAllStudySessions(): Flow<List<StudySession>> {
+        return curriculumDao.observeAllStudySessions()
     }
 
     suspend fun getAllCurriculumModulesSync(): List<CurriculumModule> {
@@ -187,20 +189,20 @@ class StudyRepository(
         curriculumDao.deleteCurriculumModule(moduleId)
     }
 
-    suspend fun updateCurriculumTopicSchedule(topicId: String, day: Int?, time: String?, category: String?) {
-        curriculumDao.updateTopicSchedule(topicId, day, time, category)
+    suspend fun updateStudySessionSchedule(sessionId: String, day: Int?, time: String?, category: String?) {
+        curriculumDao.updateSessionSchedule(sessionId, day, time, category)
     }
 
-    fun observeCurriculumTopicsForModules(moduleIds: List<String>): Flow<List<CurriculumTopic>> {
-        return curriculumDao.observeTopicsForModules(moduleIds)
+    fun observeStudySessionsForModules(moduleIds: List<String>): Flow<List<StudySession>> {
+        return curriculumDao.observeSessionsForModules(moduleIds)
     }
 
-    suspend fun getTopicsForModulesSync(moduleIds: List<String>): List<CurriculumTopic> {
-        return curriculumDao.getTopicsForModules(moduleIds)
+    suspend fun getSessionsForModulesSync(moduleIds: List<String>): List<StudySession> {
+        return curriculumDao.getSessionsForModules(moduleIds)
     }
 
-    fun observeCurriculumTopicsForDay(dayOfWeek: Int): Flow<List<CurriculumTopic>> {
-        return curriculumDao.observeTopicsForDay(dayOfWeek)
+    fun observeStudySessionsForDay(dayOfWeek: Int): Flow<List<StudySession>> {
+        return curriculumDao.observeSessionsForDay(dayOfWeek)
     }
 
     // ── Date formatting ─────────────────────────────────────────
@@ -269,7 +271,7 @@ class StudyRepository(
         return moduleDao.getModulesWithTopicsForMonth(monthPlanId)
     }
 
-    // ── Topics ───────────────────────────────────────────────────
+    // ── sessions ───────────────────────────────────────────────────
 
     suspend fun insertTopics(topics: List<Topic>): List<String> {
         topicDao.insertAll(topics)
@@ -409,7 +411,7 @@ class StudyRepository(
         val incomplete = taskDao.getIncompleteTasksBeforeDate(monthPlanId, today)
         if (incomplete.isEmpty()) return false
 
-        val updated = TopicScheduler.rebalanceSchedule(
+        val updated = com.iu.studytracker.scheduler.UnitScheduler.rebalanceSchedule(
             incompleteTasks = incomplete,
             year = plan.year,
             month = plan.month,
@@ -493,23 +495,23 @@ class StudyRepository(
     // ── Combined Setup Operation ────────────────────────────────
 
     /**
-     * Full monthly setup: creates a plan, two modules, and their topics.
+     * Full monthly setup: creates a plan, two modules, and their sessions.
      * Returns the MonthPlan id.
      *
      * @param year Calendar year
      * @param month Calendar month (1–12)
      * @param module1Name Name of the first module
-     * @param module1Topics List of topic titles for the first module
+     * @param module1sessions List of topic titles for the first module
      * @param module2Name Name of the second module
-     * @param module2Topics List of topic titles for the second module
+     * @param module2sessions List of topic titles for the second module
      */
     suspend fun performMonthlySetup(
         year: Int,
         month: Int,
         module1Name: String,
-        module1Topics: List<String>,
+        module1sessions: List<String>,
         module2Name: String,
-        module2Topics: List<String>
+        module2sessions: List<String>
     ): String {
         // 1. Create or get the month plan
         val existingPlan = monthPlanDao.getByYearAndMonth(year, month)
@@ -535,92 +537,49 @@ class StudyRepository(
         moduleDao.insert(mod2)
         val mod2Id = mod2.id
 
-        // 3. Create topics for module 1
-        val topics1 = module1Topics.mapIndexed { index, title ->
+        // 3. Create sessions for module 1
+        val sessions1 = module1sessions.mapIndexed { index, title ->
             Topic(moduleId = mod1Id, title = title, orderIndex = index)
         }
-        topicDao.insertAll(topics1)
+        topicDao.insertAll(sessions1)
 
-        // 4. Create topics for module 2
-        val topics2 = module2Topics.mapIndexed { index, title ->
+        // 4. Create sessions for module 2
+        val sessions2 = module2sessions.mapIndexed { index, title ->
             Topic(moduleId = mod2Id, title = title, orderIndex = index)
         }
-        topicDao.insertAll(topics2)
+        topicDao.insertAll(sessions2)
 
         return monthPlanId
     }
 
     // ── Schedule Generation ─────────────────────────────────────
 
-    /**
-     * Generates a study schedule for a month plan and saves it to the database.
-     *
-     * Uses [TopicScheduler] to distribute topics across available days,
-     * then batch-inserts the resulting [Task] records.
-     *
-     * @param monthPlanId The month plan to generate a schedule for.
-     * @param startFrom First eligible day (defaults to today).
-     * @return Schedule result with tasks and summary, or null if plan not found.
-     */
     suspend fun generateAndSaveSchedule(
         monthPlanId: String,
         startFrom: LocalDate = LocalDate.now()
-    ): TopicScheduler.ScheduleResult? {
+    ): com.iu.studytracker.scheduler.UnitScheduler.ScheduleResult? {
         val plan = monthPlanDao.getById(monthPlanId) ?: return null
-        val modulesWithTopics = moduleDao.getModulesWithTopicsForMonth(monthPlanId)
+        val modules = moduleDao.getModulesForMonth(monthPlanId)
 
-        if (modulesWithTopics.isEmpty()) return null
+        if (modules.isEmpty()) return null
 
-        // Clear any previously generated schedule
         taskDao.deleteTasksForMonth(monthPlanId)
 
-        // Generate the schedule
-        val result = TopicScheduler.generateSchedule(
+        val result = com.iu.studytracker.scheduler.UnitScheduler.generateSchedule(
             monthPlanId = monthPlanId,
-            modulesWithTopics = modulesWithTopics,
+            modules = modules,
             year = plan.year,
             month = plan.month,
             startFrom = startFrom
         )
 
-        // Persist tasks to database
         if (result.tasks.isNotEmpty()) {
             taskDao.insertAll(result.tasks)
         }
 
-        // Mark setup as complete
         monthPlanDao.markSetupComplete(monthPlanId)
 
         return result
-    }
-
-    /**
-     * One-shot convenience: performs monthly setup AND generates the schedule.
-     *
-     * This is the main entry point called from the Setup screen's ViewModel.
-     *
-     * @return Pair of (monthPlanId, ScheduleResult) for confirmation UI.
-     */
-    suspend fun setupMonthAndGenerateSchedule(
-        year: Int,
-        month: Int,
-        module1Name: String,
-        module1Topics: List<String>,
-        module2Name: String,
-        module2Topics: List<String>,
-        startFrom: LocalDate = LocalDate.now()
-    ): Pair<String, TopicScheduler.ScheduleResult?> {
-        val monthPlanId = performMonthlySetup(
-            year = year,
-            month = month,
-            module1Name = module1Name,
-            module1Topics = module1Topics,
-            module2Name = module2Name,
-            module2Topics = module2Topics
-        )
-
-        val result = generateAndSaveSchedule(monthPlanId, startFrom)
-        return Pair(monthPlanId, result)
     }
 
     suspend fun setupMonthWithCurriculumModules(
@@ -628,11 +587,9 @@ class StudyRepository(
         month: Int,
         moduleIds: List<String>,
         startFrom: LocalDate = LocalDate.now()
-    ): Pair<String, TopicScheduler.ScheduleResult?> {
-        // 1. Create or get the month plan
+    ): Pair<String, com.iu.studytracker.scheduler.UnitScheduler.ScheduleResult?> {
         val existingPlan = monthPlanDao.getByYearAndMonth(year, month)
         val monthPlanId = if (existingPlan != null) {
-            // Clear old data for re-setup
             taskDao.deleteTasksForMonth(existingPlan.id)
             monthPlanDao.deleteById(existingPlan.id)
             val newPlan = MonthPlan(year = year, month = month)
@@ -644,21 +601,11 @@ class StudyRepository(
             newPlan.id
         }
 
-        // 2. Fetch the selected curriculum modules and topics
         val curriculumModules = curriculumDao.getAllCurriculumModulesSync().filter { moduleIds.contains(it.id) }
         
-        // 3. Insert as Active Modules
         curriculumModules.forEachIndexed { index, currModule ->
-            val mod = Module(monthPlanId = monthPlanId, name = currModule.name, orderIndex = index)
+            val mod = Module(monthPlanId = monthPlanId, name = currModule.name, orderIndex = index, syllabus = currModule.syllabus, totalUnits = currModule.totalUnits)
             moduleDao.insert(mod)
-            val modId = mod.id
-            
-            // Fetch topics for this curriculum module
-            val currTopics = curriculumDao.getTopicsForModule(currModule.id)
-            val topics = currTopics.mapIndexed { tIndex, currTopic ->
-                Topic(moduleId = modId, title = currTopic.title, orderIndex = tIndex)
-            }
-            topicDao.insertAll(topics)
         }
 
         val result = generateAndSaveSchedule(monthPlanId, startFrom)

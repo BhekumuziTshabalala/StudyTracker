@@ -53,6 +53,12 @@ data class Task(
 
     /** FK -> topics.id (nullable if standalone task) */
     val topicId: String? = null,
+    
+    /** FK -> modules.id (nullable if standalone task or legacy topic-based) */
+    val moduleId: String? = null,
+
+    /** NEW unit-based scheduling property */
+    val unitNumber: Int? = null,
 
     /** Task title */
     val title: String = "",

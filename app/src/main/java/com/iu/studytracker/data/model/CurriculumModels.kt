@@ -38,5 +38,7 @@ data class ModuleJson(
     @SerializedName("assessment")
     val assessment: String,
     @SerializedName("core_topics")
-    val coreTopics: List<String>
+    val coreTopics: List<String>,
+    @SerializedName("total_units")
+    val totalUnits: Int? = null
 )

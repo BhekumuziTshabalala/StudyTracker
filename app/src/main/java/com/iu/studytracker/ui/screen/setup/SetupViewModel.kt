@@ -18,7 +18,7 @@ data class SetupUiState(
     val curriculumModules: List<CurriculumModule> = emptyList(),
     val selectedModuleIds: Set<String> = emptySet(),
     val isGenerating: Boolean = false,
-    val scheduleSummary: TopicScheduler.ScheduleSummary? = null,
+    val scheduleSummary: com.iu.studytracker.scheduler.UnitScheduler.ScheduleSummary? = null,
     val isComplete: Boolean = false,
     val errorMessage: String? = null
 )

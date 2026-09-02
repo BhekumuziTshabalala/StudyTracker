@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.iu.studytracker.StudyTrackerApp
 import com.iu.studytracker.data.database.entity.CurriculumModule
-import com.iu.studytracker.data.database.entity.CurriculumTopic
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -168,12 +168,19 @@ class CurriculumViewModel(application: Application) : AndroidViewModel(applicati
             semester = semesterInt,
             code = state.manualModuleCode,
             name = state.manualModuleName,
-            assessment = state.manualModuleAssessment
+            assessment = state.manualModuleAssessment,
+            syllabus = state.manualTopics.joinToString("\n• ", prefix = "• "),
+            totalUnits = state.manualTopics.size
         )
-        val topics = state.manualTopics.map { CurriculumTopic(title = it) }
+        val sessions = (1..module.totalUnits).map { unitNum ->
+            com.iu.studytracker.data.database.entity.StudySession(
+                curriculumModuleId = module.id,
+                unitNumber = unitNum
+            )
+        }
 
         viewModelScope.launch {
-            repository.insertCurriculumModuleManually(module, topics)
+            repository.insertCurriculumModuleManually(module, sessions)
             setManualEntryModalOpen(false)
         }
     }

@@ -40,5 +40,8 @@ data class Module(
     /** 0 = first module, 1 = second module within the month */
     val orderIndex: Int = 0,
     
+    val syllabus: String = "",
+    val totalUnits: Int = 0,
+    
     val updatedAt: Long = System.currentTimeMillis()
 )

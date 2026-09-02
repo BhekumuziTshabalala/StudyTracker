@@ -65,6 +65,8 @@ class FocusTimerService : Service() {
                 } else {
                     // Resume action: if we don't have a current task, we can't resume
                     if (TimerState.currentTaskId.value == null) {
+                        startForeground(NOTIFICATION_ID, buildNotification(null))
+                        stopSelf()
                         return START_NOT_STICKY
                     }
                 }

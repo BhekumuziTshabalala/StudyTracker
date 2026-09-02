@@ -1,5 +1,6 @@
 package com.iu.studytracker.data.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import com.iu.studytracker.data.database.entity.Task
 
@@ -15,6 +16,7 @@ data class TaskWithDetails(
     val moduleName: String,
     val moduleCode: String,
     val moduleOrderIndex: Int,
-    val moduleId: Long? = null,
+    @ColumnInfo(name = "associatedModuleId")
+    val associatedModuleId: String? = null,
     val resourceUri: String? = null
 )

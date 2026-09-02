@@ -189,23 +189,22 @@ fun ModuleDetailsScreen(
                 }
             }
 
-            // Units Section
+            // Syllabus Section
             item {
                 Text(
-                    text = "Units & Topics",
+                    text = "Syllabus (Total Units: ${module?.totalUnits ?: 0})",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                 )
-                if (state.topics.isEmpty()) {
-                    Text("No units defined for this module.", style = MaterialTheme.typography.bodyMedium)
+                if (module?.syllabus?.isNotBlank() == true) {
+                    Text(
+                        text = module.syllabus,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text("No syllabus available for this module.", style = MaterialTheme.typography.bodyMedium)
                 }
-            }
-            items(state.topics) { topic ->
-                TopicEditItem(
-                    topic = topic,
-                    onTitleChange = { newTitle -> viewModel.updateTopicTitle(topic.id, newTitle) }
-                )
             }
             
             // Tasks Section

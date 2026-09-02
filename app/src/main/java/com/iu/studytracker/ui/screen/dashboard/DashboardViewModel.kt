@@ -49,7 +49,7 @@ data class DashboardUiState(
     val semesterProgress: List<SemesterProgress> = emptyList(),
     val overdueTasks: List<com.iu.studytracker.data.database.entity.Task> = emptyList(),
     val isSyncing: Boolean = false,
-    val manualTopics: List<com.iu.studytracker.data.database.entity.CurriculumTopic> = emptyList()
+    val manualSessions: List<com.iu.studytracker.data.database.entity.StudySession> = emptyList()
 )
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
@@ -184,8 +184,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             
         viewModelScope.launch(Dispatchers.IO) {
             val now = LocalDate.now()
-            repository.observeCurriculumTopicsForDay(now.dayOfWeek.value).collect { topics ->
-                _uiState.update { it.copy(manualTopics = topics) }
+            repository.observeStudySessionsForDay(now.dayOfWeek.value).collect { sessions ->
+                _uiState.update { it.copy(manualSessions = sessions) }
             }
         }
 
